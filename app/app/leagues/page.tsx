@@ -127,18 +127,29 @@ export default function LeaguesPage() {
               const displayStatus = getDisplayStatus();
 
               return (
-                <LeagueCard
+                <div
                   key={league.id}
-                  league={{
-                    id: league.id,
-                    name: league.name,
-                    members: league.league_members?.length || 0,
-                    maxMembers: league.max_players,
-                    prizePool: league.mode === 'competitive' ? 'TBD' : 'Social',
-                    status: displayStatus,
-                    entryFee: 'Free'
+                  onClick={(e) => {
+                    // Don't navigate if clicking on a button
+                    if ((e.target as HTMLElement).closest('button, a')) {
+                      return;
+                    }
+                    // Navigate to draft page
+                    router.push(`/app/draft/${league.id}`);
                   }}
-                  action={
+                  className="cursor-pointer"
+                >
+                  <LeagueCard
+                    league={{
+                      id: league.id,
+                      name: league.name,
+                      members: league.league_members?.length || 0,
+                      maxMembers: league.max_players,
+                      prizePool: league.mode === 'competitive' ? 'TBD' : 'Social',
+                      status: displayStatus,
+                      entryFee: 'Free'
+                    }}
+                    action={
                     <>
                       {league.status === 'drafting' && (
                         <Link href={`/app/draft/${league.id}`}>
@@ -168,6 +179,7 @@ export default function LeaguesPage() {
                     </>
                   }
                 />
+                </div>
               );
             })
           ) : (

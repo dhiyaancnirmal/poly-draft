@@ -131,27 +131,39 @@ export async function fetchDailyMarkets(targetDate?: Date): Promise<MarketSelect
     tomorrow.setDate(tomorrow.getDate() + 1);
     const date = targetDate || tomorrow;
 
-    // Format date as "December 5" (what Polymarket uses in titles)
+    // Format date for logging
     const dateString = date.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
 
-    console.log(`Searching markets for "${dateString}"...`);
+    console.log(`Fetching markets ending on "${dateString}"...`);
 
-    // Use Polymarket's search API - it does all the heavy lifting
-    const searchQuery = `"${dateString}"`;
-    const url = `${POLYMARKET_API}/public-search?q=${encodeURIComponent(searchQuery)}&limit=100&sort=volume&ascending=false&events_status=open`;
-    const cacheKey = `search-${dateString}`;
+    // Get all active markets sorted by volume (no text search - most daily markets don't have dates in titles)
+    const url = `${POLYMARKET_API}/events?closed=false&order=volume24hr&ascending=false&limit=500`;
+    const cacheKey = `active-markets-${date.toISOString().split('T')[0]}`;
 
-    const response: SearchResponse = await fetchWithCache(url, cacheKey);
-    const events = response?.events || [];
+    const events = await fetchWithCache(url, cacheKey);
+    console.log(`Fetched ${events.length} active markets`);
 
-    console.log(`Found ${events.length} markets for ${dateString}`);
+    // Filter for markets that END within 24 hours of the target date
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
 
-    if (events.length === 0) {
+    const marketsEndingToday = events.filter((event: any) => {
+      if (!event.endDate) return false;
+      const endDate = new Date(event.endDate);
+      return endDate >= startOfDay && endDate <= endOfDay;
+    });
+
+    console.log(`Found ${marketsEndingToday.length} markets ending on ${dateString}`);
+
+    if (marketsEndingToday.length === 0) {
+      console.log('No markets ending on target date, returning empty array');
       return [];
     }
 
     // Select diverse markets - O(n) single pass
-    return selectDiverseMarkets(events, 10);
+    return selectDiverseMarkets(marketsEndingToday, 10);
   } catch (error) {
     console.error('Failed to fetch markets:', error);
     return [];

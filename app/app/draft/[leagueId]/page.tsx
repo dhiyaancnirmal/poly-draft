@@ -143,37 +143,55 @@ export default function DraftRoomPage() {
           )}
         </div>
 
-        {/* Draft Board */}
+        {/* Draft Board - Horizontal Carousel */}
         <div className="space-y-3">
           <h3 className="text-sm font-medium text-muted">Draft Board</h3>
-          <div className="grid grid-cols-3 gap-2">
-            {Array.from({ length: 12 }).map((_, i) => {
-              const pick = picks[i];
+          <div className="flex gap-3 justify-center items-center">
+            {(() => {
+              const currentPickIndex = picks.length;
+              const previousPick = picks[currentPickIndex - 1];
+              const nextPickIndex = currentPickIndex + 1;
+
               return (
-                <div
-                  key={i + 1}
-                  className={`
-                    aspect-square rounded-lg border-2 p-2 flex flex-col items-center justify-center text-xs
-                    ${pick
-                      ? 'border-success bg-success/20'
-                      : i === picks.length
-                        ? 'border-primary bg-primary/20 animate-pulse'
-                        : 'border-surface/20 bg-surface/30'
-                    }
-                  `}
-                >
-                  <div className="text-muted mb-1">#{i + 1}</div>
-                  {pick ? (
-                    <div className="text-center">
-                      <div className="font-medium text-xs">{pick.outcome_side}</div>
-                      <div className="text-muted text-xs">{pick.market_id_text.slice(0, 8)}...</div>
+                <>
+                  {/* Previous Pick */}
+                  <div className="flex-1 max-w-[120px]">
+                    {previousPick ? (
+                      <div className="aspect-square rounded-lg border-2 border-success/50 bg-success/10 p-3 flex flex-col items-center justify-center">
+                        <div className="text-muted text-xs mb-1">#{currentPickIndex}</div>
+                        <div className="text-center">
+                          <div className="font-medium text-sm">{previousPick.outcome_side}</div>
+                          <div className="text-muted text-xs mt-1">{previousPick.market_id_text.slice(0, 8)}...</div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="aspect-square rounded-lg border-2 border-surface/20 bg-surface/10 p-3 flex items-center justify-center">
+                        <div className="text-muted text-xs">No previous</div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Current Pick */}
+                  <div className="flex-1 max-w-[140px]">
+                    <div className="aspect-square rounded-lg border-2 border-primary bg-primary/20 p-4 flex flex-col items-center justify-center animate-pulse">
+                      <div className="text-primary text-xs mb-2 font-bold">CURRENT</div>
+                      <div className="text-2xl font-bold text-text">#{currentPickIndex + 1}</div>
+                      <div className="text-muted text-xs mt-2">
+                        {isMyTurn ? 'Your Turn' : 'Waiting...'}
+                      </div>
                     </div>
-                  ) : (
-                    <div className="text-muted">Empty</div>
-                  )}
-                </div>
+                  </div>
+
+                  {/* Next Pick */}
+                  <div className="flex-1 max-w-[120px]">
+                    <div className="aspect-square rounded-lg border-2 border-surface/20 bg-surface/10 p-3 flex flex-col items-center justify-center">
+                      <div className="text-muted text-xs mb-1">#{nextPickIndex + 1}</div>
+                      <div className="text-muted text-xs">Up Next</div>
+                    </div>
+                  </div>
+                </>
               );
-            })}
+            })()}
           </div>
         </div>
 

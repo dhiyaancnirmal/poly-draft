@@ -6,75 +6,21 @@ import { LeagueCard } from "@/components/features";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 
+import { Trophy } from "lucide-react";
 
-// Mock data
-const allLeagues = [
-  {
-    id: "1",
-    name: "Week 12 Predictions",
-    members: 4,
-    maxMembers: 8,
-    prizePool: "$800",
-    status: "active" as const,
-    entryFee: "$100"
-  },
-  {
-    id: "2", 
-    name: "Crypto Championship",
-    members: 7,
-    maxMembers: 8,
-    prizePool: "$700",
-    status: "active" as const,
-    entryFee: "$100"
-  },
-  {
-    id: "3",
-    name: "Market Masters",
-    members: 8,
-    maxMembers: 8,
-    prizePool: "$800",
-    status: "full" as const,
-    entryFee: "$100"
-  },
-  {
-    id: "4",
-    name: "DeFi Degens League",
-    members: 3,
-    maxMembers: 6,
-    prizePool: "$300",
-    status: "active" as const,
-    entryFee: "$50"
-  },
-  {
-    id: "5",
-    name: "NFT Predictions",
-    members: 6,
-    maxMembers: 8,
-    prizePool: "$600",
-    status: "active" as const,
-    entryFee: "$75"
-  }
-];
-
+// NOTE: Showing skeleton loaders indefinitely since no real data/API is connected yet
+// In production, this would fetch actual data from your backend
 export default function LeaguesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<"all" | "active" | "full">("all");
-  const [leagues] = useState(allLeagues);
 
   useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 1200);
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 1200);
     return () => clearTimeout(timer);
   }, []);
-
-  const filteredLeagues = leagues.filter(league => {
-    const matchesSearch = league.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesFilter = filterStatus === "all" || league.status === filterStatus;
-    return matchesSearch && matchesFilter;
-  });
-
-  const activeCount = leagues.filter(l => l.status === 'active').length;
-  const fullCount = leagues.filter(l => l.status === 'full').length;
 
   return (
     <AppLayout title="Leagues">
@@ -93,28 +39,29 @@ export default function LeaguesPage() {
               size="sm"
               onClick={() => setFilterStatus("all")}
             >
-              All ({leagues.length})
+              All (0)
             </Button>
             <Button
               variant={filterStatus === "active" ? "primary" : "outline"}
               size="sm"
               onClick={() => setFilterStatus("active")}
             >
-              Active ({activeCount})
+              Active (0)
             </Button>
             <Button
               variant={filterStatus === "full" ? "primary" : "outline"}
               size="sm"
               onClick={() => setFilterStatus("full")}
             >
-              Full ({fullCount})
+              Full (0)
             </Button>
           </div>
         </div>
 
         {/* Create League Button */}
         <Button size="lg" className="w-full">
-          🏆 Create New League
+          <Trophy className="w-4 h-4 mr-2" />
+          Create New League
         </Button>
 
         {/* Leagues List */}
@@ -126,13 +73,9 @@ export default function LeaguesPage() {
               <LeagueCard loading />
               <LeagueCard loading />
             </>
-          ) : filteredLeagues.length > 0 ? (
-            filteredLeagues.map((league) => (
-              <LeagueCard key={league.id} league={league} />
-            ))
           ) : (
             <div className="text-center py-8">
-              <p className="text-muted">No leagues found matching your criteria.</p>
+              <p className="text-muted">No leagues found. Create one to get started!</p>
             </div>
           )}
         </div>

@@ -3,6 +3,7 @@
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
+import { User, Bell, Shield, Palette, HelpCircle, LogOut } from "lucide-react";
 
 export default function SettingsPage() {
   return (
@@ -23,13 +24,16 @@ export default function SettingsPage() {
             <h3 className="font-medium text-text mb-3">Account</h3>
             <div className="space-y-3">
               <Button variant="ghost" className="w-full justify-start">
-                👤 Profile Settings
+                <User className="w-4 h-4 mr-3" />
+                Profile Settings
               </Button>
               <Button variant="ghost" className="w-full justify-start">
-                🔔 Notifications
+                <Bell className="w-4 h-4 mr-3" />
+                Notifications
               </Button>
               <Button variant="ghost" className="w-full justify-start">
-                🔒 Privacy
+                <Shield className="w-4 h-4 mr-3" />
+                Privacy
               </Button>
             </div>
           </div>
@@ -38,13 +42,11 @@ export default function SettingsPage() {
             <h3 className="font-medium text-text mb-3">App</h3>
             <div className="space-y-3">
               <Button variant="ghost" className="w-full justify-start">
-                🌙 Dark Mode
+                <Palette className="w-4 h-4 mr-3" />
+                Dark Mode
               </Button>
               <Button variant="ghost" className="w-full justify-start">
-                💾 Clear Cache
-              </Button>
-              <Button variant="ghost" className="w-full justify-start">
-                📊 Analytics
+                Clear Cache
               </Button>
             </div>
           </div>
@@ -53,28 +55,20 @@ export default function SettingsPage() {
             <h3 className="font-medium text-text mb-3">Support</h3>
             <div className="space-y-3">
               <Button variant="ghost" className="w-full justify-start">
-                📚 Help Center
+                <HelpCircle className="w-4 h-4 mr-3" />
+                Help Center
               </Button>
               <Button variant="ghost" className="w-full justify-start">
-                💬 Discord
-              </Button>
-              <Button variant="ghost" className="w-full justify-start">
-                🐛 Report Bug
+                <LogOut className="w-4 h-4 mr-3" />
+                Sign Out
               </Button>
             </div>
           </div>
         </div>
 
-        {/* Sign Out */}
-        <div className="pt-4 border-t border-surface/20">
-          <Button variant="outline" className="w-full">
-            Sign Out
-          </Button>
-        </div>
-
         {/* Footer */}
         <div className="text-center text-xs text-muted space-y-1">
-          <p>Made with ❤️ for the Base ecosystem</p>
+          <p>Made with ❤️ for Base ecosystem</p>
           <p>© 2024 PolyDraft</p>
         </div>
       </div>

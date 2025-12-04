@@ -3,13 +3,13 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { Home, Trophy, User, Settings } from "lucide-react";
 
 const navigation = [
-  { name: "Home", href: "/app", icon: "🏠" },
-  { name: "Leagues", href: "/app/leagues", icon: "🏆" },
-  { name: "Draft", href: "/app/draft", icon: "📊" },
-  { name: "Profile", href: "/app/profile", icon: "👤" },
-  { name: "Settings", href: "/app/settings", icon: "⚙️" },
+  { name: "Home", href: "/app", icon: Home },
+  { name: "Leagues", href: "/app/leagues", icon: Trophy },
+  { name: "Profile", href: "/app/profile", icon: User },
+  { name: "Settings", href: "/app/settings", icon: Settings },
 ];
 
 export function BottomNav() {
@@ -33,8 +33,8 @@ export function BottomNav() {
                     : "text-muted hover:text-text"
                 )}
               >
-                <span className="text-xl">{item.icon}</span>
                 <span className="text-xs font-medium">{item.name}</span>
+                <item.icon className="w-4 h-4" />
               </Link>
             );
           })}

@@ -83,7 +83,7 @@ export default function Splash() {
 
         if (profileError) {
           console.error('Error creating user profile:', profileError);
-          // Don't throw, just log - user is authenticated
+          throw new Error(`Failed to create user profile: ${profileError.message}`);
         }
 
         console.log('User authenticated:', {
@@ -146,9 +146,10 @@ export default function Splash() {
           </Button>
 
           {error && (
-            <p className="text-xs text-warning">
-              {error}
-            </p>
+            <div className="p-4 bg-error/10 border border-error/20 rounded-lg">
+              <p className="text-sm text-error font-semibold">Authentication Error</p>
+              <p className="text-xs text-error/80 mt-1">{error}</p>
+            </div>
           )}
 
           <p className="text-xs text-muted">

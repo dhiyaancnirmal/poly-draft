@@ -3,7 +3,7 @@ import { createClient } from './client'
 
 export async function updateSession(request: NextRequest) {
   try {
-    const supabase = await createClient()
+    const supabase = createClient()
     
     // This will refresh the session if needed
     const { data: { session }, error } = await supabase.auth.getSession()

@@ -1,39 +1,47 @@
-@import url('https://fonts.googleapis.com/css2?family=TikTok+Sans:opsz,wght@12..36,300..900&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Custom CSS variables for PolyDraft theme */
 :root {
-  --background: #0f172a;
-  /* Slate 900 */
-  --foreground: #f8fafc;
-  /* Slate 50 */
-  --surface: #1e293b;
-  /* Slate 800 */
-  --surface-highlight: #334155;
-  /* Slate 700 */
-  --primary: #6366f1;
-  /* Indigo 500 */
+  color-scheme: dark;
+}
+
+[data-theme="dark"] {
+  --background: #0b1020;
+  --foreground: #e9ecf5;
+  --surface: #11182a;
+  --surface-highlight: #18213a;
+  --primary: #6da8ff;
+  --primary-foreground: #061025;
+  --secondary: #8fd7ff;
+  --secondary-foreground: #061025;
+  --success: #58d0a7;
+  --warning: #f5c86a;
+  --error: #ef7d8e;
+  --muted: #9aa4bf;
+  --border: #1f2942;
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+  --background: #ffffff;
+  --foreground: #0f172a;
+  --surface: #f6f7fb;
+  --surface-highlight: #e9edf5;
+  --primary: #1f6bff;
   --primary-foreground: #ffffff;
-  --secondary: #ec4899;
-  /* Pink 500 */
-  --secondary-foreground: #ffffff;
-  --success: #10b981;
-  /* Emerald 500 */
-  --warning: #f59e0b;
-  /* Amber 500 */
-  --error: #ef4444;
-  /* Red 500 */
-  --muted: #94a3b8;
-  /* Slate 400 */
-  --border: #334155;
-  /* Slate 700 */
+  --secondary: #7cc4ff;
+  --secondary-foreground: #0b1428;
+  --success: #1fa27f;
+  --warning: #d68a0f;
+  --error: #d8486f;
+  --muted: #4b5565;
+  --border: #d9deea;
 }
 
 html {
-  color-scheme: dark;
   height: 100%;
   background: var(--background);
 }
@@ -46,10 +54,16 @@ body {
 
 body {
   min-height: 100%;
-  background: radial-gradient(circle at top center, #1e293b 0%, #0f172a 100%);
+  background-color: var(--background);
+  background-image:
+    radial-gradient(70% 45% at 20% 0%, color-mix(in srgb, var(--primary) 12%, transparent), transparent 55%),
+    radial-gradient(70% 45% at 80% 0%, color-mix(in srgb, var(--secondary) 10%, transparent), transparent 55%),
+    linear-gradient(180deg, color-mix(in srgb, var(--background) 96%, transparent) 0%, var(--background) 68%, color-mix(in srgb, var(--surface-highlight) 25%, transparent) 100%);
   color: var(--foreground);
   font-feature-settings: "ss01", "ss02", "cv01", "cv02";
+  font-family: 'Inter', system-ui, -apple-system, "Segoe UI", sans-serif;
   -webkit-font-smoothing: antialiased;
+  transition: background-color 0.25s ease, color 0.25s ease, background-image 0.35s ease;
 }
 
 * {
@@ -61,4 +75,18 @@ body {
 a {
   color: inherit;
   text-decoration: none;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--primary) 35%, transparent);
+  color: var(--foreground);
+}
+
+/* Hide scrollbar utility */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;  /* Chrome, Safari, Opera */
 }

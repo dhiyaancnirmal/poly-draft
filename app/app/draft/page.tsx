@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { MarketCard } from "@/components/features";
 import { Button } from "@/components/ui/Button";
@@ -43,6 +44,35 @@ export default function DraftPage() {
       console.log(`Confirmed pick: ${newPick.side} for market ${newPick.marketId}`);
     }
   };
+
+  const [carouselIndex, setCarouselIndex] = useState(0);
+  const [direction, setDirection] = useState(1);
+  const [isCondensed, setIsCondensed] = useState(false);
+
+  // Auto-advance carousel
+  useEffect(() => {
+    const totalSlots = 12;
+    const interval = setInterval(() => {
+      setDirection(1);
+      setCarouselIndex((prev) => (prev + 1) % totalSlots);
+    }, 1800);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Condense header on scroll
+  useEffect(() => {
+    const onScroll = () => {
+      setIsCondensed(window.scrollY > 32);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  const visibleIndices = useMemo(() => {
+    const totalSlots = 12;
+    const wrap = (n: number) => (n + totalSlots) % totalSlots;
+    return [wrap(carouselIndex - 1), wrap(carouselIndex), wrap(carouselIndex + 1)];
+  }, [carouselIndex]);
 
   // Bypass auth check for testing
   // if (!user) {
@@ -120,68 +150,75 @@ export default function DraftPage() {
 
   return (
     <AppLayout title="Draft Room">
-      <div className="p-4 space-y-6">
-        {/* Draft Status + Order (sticky) */}
-        <div className="sticky top-[88px] z-20">
-          <div className="rounded-2xl border border-border/60 bg-surface/80 px-4 py-3 shadow-card backdrop-blur">
-            <div className="text-center space-y-2">
-              <div className="flex items-center justify-center space-x-4">
-                <Badge variant="success">
-                  🎯 Your Pick #{totalPicks + 1}
-                </Badge>
-                <div className="text-2xl font-bold text-text">
-                  {formatTime()}
-                </div>
+      <div className="p-4 space-y-4">
+        {/* Draft Status + Carousel (sticky, compact header) */}
+        <div className="sticky top-0 z-30 pt-2 pb-2 bg-background/90 backdrop-blur">
+          <div
+            className={`mx-1 space-y-2 rounded-lg border border-border/60 bg-surface/85 shadow-card px-3 transition-all ${
+              isCondensed ? "py-2" : "py-3"
+            }`}
+          >
+            <div className="grid grid-cols-[auto_1fr_auto] items-center gap-3">
+              <Badge variant="success" className="whitespace-nowrap px-3 py-1 text-xs">
+                🎯 Pick #{totalPicks + 1}
+              </Badge>
+              <div className={`text-center font-semibold text-foreground tabular-nums transition-all ${isCondensed ? "text-base" : "text-lg"}`}>
+                {formatTime()}
               </div>
-              <p className="text-sm text-muted">
-                Make your selection before time runs out
-              </p>
-              <div className="flex items-center justify-center">
-                <Badge variant={liveStatus === 'connected' ? 'success' : liveStatus === 'connecting' ? 'info' : 'default'}>
-                  Live prices: {liveStatus}
+              <div className="flex items-center justify-end">
+                <Badge variant="success" className="whitespace-nowrap px-3 py-1 text-xs opacity-0">
+                  spacer
                 </Badge>
               </div>
             </div>
 
-            <div className="mt-4 space-y-2">
-              <h3 className="text-sm font-medium text-muted">Pick Order</h3>
-              <div className="flex items-stretch gap-3 overflow-hidden rounded-xl border border-border/60 bg-surface/60 px-3 py-3">
-                {([totalPicks - 1, totalPicks, totalPicks + 1] as const)
-                  .filter((i) => i >= 0 && i < 12)
-                  .map((i) => {
+            <div className="relative h-[84px] overflow-hidden px-1 py-1">
+              <AnimatePresence initial={false} custom={direction}>
+                <motion.div
+                  key={carouselIndex}
+                  custom={direction}
+                  initial={{ x: direction * 80, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  exit={{ x: direction * -80, opacity: 0 }}
+                  transition={{ duration: 0.28, ease: "easeInOut" }}
+                  className="absolute inset-0 flex items-stretch gap-2"
+                >
+                  {visibleIndices.map((i) => {
                     const pick = picks[i];
                     const isCurrent = i === totalPicks;
                     return (
                       <div
                         key={i}
                         className={`
-                          flex-1 min-w-0 rounded-xl border-2 p-3 flex flex-col items-center justify-center text-xs text-center
+                          flex-1 min-w-0 rounded-md border px-3 py-2 flex flex-col items-center justify-center text-center
                           ${pick
-                            ? 'border-success bg-success/15'
+                            ? 'border-success/60 bg-success/12'
                             : isCurrent
-                              ? 'border-primary bg-primary/15'
-                              : 'border-border/60 bg-surface/70'
+                              ? 'border-primary/70 bg-primary/12'
+                              : 'border-border/40 bg-surface/70'
                           }
                         `}
                       >
-                        <div className="text-[11px] font-semibold text-muted mb-1">
-                          #{i + 1} {isCurrent ? '(Now)' : i < totalPicks ? '(Prev)' : '(Next)'}
+                        <div className="text-sm font-semibold text-foreground">
+                          #{i + 1}
                         </div>
-                        <div className="text-sm text-foreground font-medium truncate max-w-[160px]">
-                          {pick ? `${pick.side} - ${pick.marketId.slice(0, 8)}...` : 'Waiting'}
-                        </div>
+                        {pick ? (
+                          <div className="text-xs text-muted truncate max-w-[140px]">
+                            {pick.side} · {pick.marketId.slice(0, 8)}...
+                          </div>
+                        ) : null}
                       </div>
                     );
                   })}
-              </div>
+                </motion.div>
+              </AnimatePresence>
             </div>
           </div>
         </div>
 
-        {/* Available Markets */}
+        {/* Markets & action (no extra section header) */}
         <div className="space-y-3">
-          <h3 className="text-sm font-medium text-muted">Available Markets</h3>
-          <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-1">
+          <div className="space-y-3">
             {marketSelections.map((selection) => (
               <MarketCard
                 key={selection.event.id}
@@ -212,7 +249,6 @@ export default function DraftPage() {
             ))}
           </div>
 
-          {/* Submit Pick Button */}
           <Button
             size="lg"
             className="w-full"

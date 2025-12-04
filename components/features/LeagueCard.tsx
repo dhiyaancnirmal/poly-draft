@@ -38,11 +38,10 @@ export function LeagueCard({ league, loading, action }: LeagueCardProps) {
     league.status === 'full' ? 'warning' : 'default';
 
   return (
-    <Card hoverable className="group relative">
-      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-secondary opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+    <Card className="relative">
       <CardHeader>
         <div className="flex items-start justify-between">
-          <h3 className="font-bold text-lg text-text group-hover:text-primary transition-colors">{league.name}</h3>
+          <h3 className="font-bold text-lg text-text">{league.name}</h3>
           <Badge variant={statusVariant}>
             {league.status}
           </Badge>

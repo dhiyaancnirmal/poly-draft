@@ -6,6 +6,22 @@ import { RootProvider } from "./rootProvider";
 import { PageTransition } from "@/components/layout/PageTransition";
 import "./globals.css";
 
+const themeInitializer = `
+(function() {
+  const storageKey = 'poly-theme';
+  try {
+    const stored = window.localStorage.getItem(storageKey);
+    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const initial = stored === 'light' || stored === 'dark' ? stored : (prefersDark ? 'dark' : 'light');
+    document.documentElement.dataset.theme = initial;
+    document.documentElement.style.colorScheme = initial === 'dark' ? 'dark' : 'light';
+  } catch (e) {
+    document.documentElement.dataset.theme = 'light';
+    document.documentElement.style.colorScheme = 'light';
+  }
+})();
+`;
+
 export async function generateMetadata(): Promise<Metadata> {
   return {
     title: minikitConfig.miniapp.name,
@@ -43,7 +59,10 @@ export default function RootLayout({
 }>) {
   return (
     <RootProvider>
-      <html lang="en">
+      <html lang="en" suppressHydrationWarning data-theme="light">
+        <head>
+          <script dangerouslySetInnerHTML={{ __html: themeInitializer }} />
+        </head>
         <body className={`${inter.variable} ${sourceCodePro.variable}`}>
           <SafeArea>
             <PageTransition>{children}</PageTransition>

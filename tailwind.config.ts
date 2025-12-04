@@ -12,6 +12,7 @@ const config: Config = {
       colors: {
         background: 'var(--background)',
         foreground: 'var(--foreground)',
+        text: 'var(--foreground)',
         surface: {
           DEFAULT: 'var(--surface)',
           highlight: 'var(--surface-highlight)',
@@ -31,7 +32,7 @@ const config: Config = {
         border: 'var(--border)',
       },
       fontFamily: {
-        sans: ['"TikTok Sans"', 'Helvetica', 'Arial', 'sans-serif'],
+        sans: ['var(--font-inter)', 'Inter', 'Helvetica', 'Arial', 'sans-serif'],
       },
       maxWidth: {
         mobile: '448px', // 28rem - mobile-first max width
@@ -51,15 +52,15 @@ const config: Config = {
         'touch': '44px', // Minimum touch target size
       },
       borderRadius: {
-        'sm': '8px',
-        DEFAULT: '12px',
-        'md': '16px',
-        'lg': '20px',
-        'xl': '24px',
-        '2xl': '32px',
-        '3xl': '40px',
+        'sm': '6px',
+        DEFAULT: '10px',
+        'md': '14px',
+        'lg': '16px',
+        'xl': '18px',
+        '2xl': '22px',
+        '3xl': '28px',
         'full': '9999px',
-        'card': '24px', // Deep rounding for cards
+        'card': '18px', // Softer rounding for cards
         'pill': '9999px',
       },
       boxShadow: {

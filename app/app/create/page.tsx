@@ -9,12 +9,13 @@ import Link from "next/link";
 import { useState } from "react";
 import { useAuth } from "@/lib/hooks";
 import { useRouter } from "next/navigation";
-import { createLeague } from "@/app/actions/leagues";
+import { createClient } from "@/lib/supabase/client";
   
 export default function CreateLeaguePage() {
     const [isLoading, setIsLoading] = useState(false);
     const { user } = useAuth();
     const router = useRouter();
+    const supabase = createClient();
  
      const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -28,7 +29,23 @@ export default function CreateLeaguePage() {
         
         try {
             const formData = new FormData(e.currentTarget);
-            const newLeague = await createLeague(formData);
+            const leagueData = {
+                name: formData.get('name') as string,
+                description: formData.get('description') as string,
+                entry_fee: parseFloat(formData.get('entry_fee') as string),
+                max_players: parseInt(formData.get('max_players') as string),
+                creator_id: user.id,
+            };
+
+            const { data: newLeague, error } = await supabase
+                .from('leagues')
+                .insert(leagueData as any)
+                .select()
+                .single();
+
+            if (error) {
+                throw error;
+            }
             
             if (newLeague) {
                 router.push('/app');
@@ -44,7 +61,7 @@ export default function CreateLeaguePage() {
     return (
         <AppLayout title="Create League">
             <div className="p-4 space-y-6 pb-24">
-                <Link href="/app" className="inline-flex items-center text-sm text-muted hover:text-text transition-colors">
+                <Link href="/app" className="inline-flex items-center text-sm text-muted transition-colors">
                     <ArrowLeft className="w-4 h-4 mr-1" />
                     Back to Home
                 </Link>

@@ -13,18 +13,18 @@ export const Badge: React.FC<BadgeProps> = ({
   className
 }) => {
   const variants = {
-    success: 'bg-success/20 text-success border border-success/30',
-    warning: 'bg-warning/20 text-warning border border-warning/30',
-    error: 'bg-red-500/20 text-red-500 border border-red-500/30',
-    info: 'bg-primary/20 text-primary border border-primary/30',
-    default: 'bg-surface/50 text-muted border border-surface/30',
-    outline: 'border border-surface/50 text-muted bg-transparent'
+    success: 'bg-success/15 text-success border border-success/30',
+    warning: 'bg-warning/15 text-warning border border-warning/30',
+    error: 'bg-error/15 text-error border border-error/30',
+    info: 'bg-primary/15 text-primary border border-primary/30',
+    default: 'bg-surface-highlight/70 text-muted border border-border/70',
+    outline: 'border border-border/70 text-muted bg-transparent'
   };
 
   return (
     <span
       className={cn(
-        'inline-flex items-center rounded-full px-3 py-1 text-xs font-bold tracking-wide shadow-sm',
+        'inline-flex items-center rounded-md px-3 py-1 text-[11px] font-semibold tracking-wide shadow-sm',
         variants[variant],
         className
       )}

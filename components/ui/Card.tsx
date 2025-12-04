@@ -18,8 +18,7 @@ export function Card({
   return (
     <motion.div
       className={cn(
-        'rounded-card border border-surface-highlight/50 bg-surface/60 backdrop-blur-xl shadow-card overflow-hidden',
-        hoverable && 'hover:bg-surface/80 hover:border-primary/20 transition-colors duration-300',
+        'rounded-xl border border-border/70 bg-surface/85 backdrop-blur-xl shadow-[0_12px_32px_-24px_rgba(0,0,0,0.32)] overflow-hidden',
         className
       )}
       {...props}

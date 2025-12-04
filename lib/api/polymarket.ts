@@ -1,5 +1,8 @@
 import { PolymarketEvent, PolymarketMarket, SearchResponse, Tag, MarketSelection, MARKET_CATEGORIES, MarketCategory, CATEGORY_PRIORITY } from '@/lib/types/polymarket';
 
+// Export types for use in hooks
+export type { MarketSelection, Tag };
+
 const POLYMARKET_API = 'https://gamma-api.polymarket.com';
 
 // Cache for API responses to respect rate limits

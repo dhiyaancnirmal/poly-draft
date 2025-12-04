@@ -290,6 +290,6 @@ export interface ExtendedMarketCardProps {
   };
   loading?: boolean;
   onSelect?: (marketId: string, side: 'YES' | 'NO') => void;
-  selectedSide?: 'YES' | 'NO';
-  selectedMarket?: string;
+  selectedSide?: 'YES' | 'NO' | null;
+  selectedMarket?: string | null;
 }

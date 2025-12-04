@@ -13,9 +13,10 @@ interface LeagueCardProps {
     entryFee: string;
   };
   loading?: boolean;
+  action?: React.ReactNode;
 }
 
-export function LeagueCard({ league, loading }: LeagueCardProps) {
+export function LeagueCard({ league, loading, action }: LeagueCardProps) {
   if (loading) {
     return (
       <Card>
@@ -63,6 +64,11 @@ export function LeagueCard({ league, loading }: LeagueCardProps) {
             <span className="text-muted font-medium">Entry Fee</span>
             <span className="text-text font-bold">{league.entryFee}</span>
           </div>
+          {action && (
+            <div className="mt-4 pt-4 border-t border-surface-highlight/50">
+              {action}
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>

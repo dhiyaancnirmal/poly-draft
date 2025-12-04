@@ -1,9 +1,10 @@
 "use client";
-
+ 
 import { useState, useEffect } from "react";
 import { sdk } from "@farcaster/miniapp-sdk";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
+import { createClient } from "@/lib/supabase/client";
 
 export default function Splash() {
   const [isLoading, setIsLoading] = useState(false);
@@ -19,11 +20,31 @@ export default function Splash() {
       const { token } = await sdk.quickAuth.getToken();
 
       if (token) {
-        // Store token in localStorage for later use
-        localStorage.setItem("auth_token", token);
+        // Create Supabase client
+        const supabase = createClient();
+        
+        // For now, we'll create a simple user profile
+        // In production, you'd verify the Farcaster token and extract user info
+        const { data: { user }, error: authError } = await supabase.auth.signInAnonymously({
+          options: {
+            data: {
+              farcaster_token: token,
+              username: `User_${Date.now().toString(36).slice(0, 8)}`
+            }
+          }
+        });
 
-        // Navigate to main app
-        router.push("/app");
+        if (authError) {
+          throw authError;
+        }
+
+        if (user) {
+          // TODO: Create user profile later
+          console.log('User authenticated:', user.id);
+          
+          // Navigate to main app
+          router.push("/app");
+        }
       }
     } catch (error) {
       console.error("Sign in failed:", error);

@@ -1,5 +1,5 @@
 "use client";
-
+ 
 import { useState } from "react";
 import Link from "next/link";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -7,12 +7,13 @@ import { LeagueCard, MarketCard } from "@/components/features";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Plus, Trophy } from "lucide-react";
-
-// NOTE: Showing skeleton loaders indefinitely since no real data/API is connected yet
-// In production, this would fetch actual data from your backend
+import { useLeagues } from "@/lib/hooks";
+import { useAuth } from "@/lib/hooks";
+ 
 export default function HomePage() {
-  const [isLoadingLeagues] = useState(true);
-  const [isLoadingMarkets] = useState(true);
+  const { user } = useAuth();
+  const { leagues, loading: isLoadingLeagues, createLeague, joinLeague } = useLeagues();
+  const [isLoadingMarkets] = useState(true); // Keep this for now until Polymarket integration
 
   return (
     <AppLayout title="PolyDraft">
@@ -47,6 +48,21 @@ export default function HomePage() {
                 <LeagueCard loading />
                 <LeagueCard loading />
               </>
+            ) : leagues.length > 0 ? (
+              leagues.map((league) => (
+                <LeagueCard 
+                  key={league.id} 
+                  league={{
+                    id: league.id,
+                    name: league.name,
+                    members: league.league_members?.length || 0,
+                    maxMembers: league.max_players,
+                    prizePool: `$${(league.entry_fee * (league.league_members?.length || 0)).toFixed(2)}`,
+                    status: league.status,
+                    entryFee: `$${league.entry_fee.toFixed(2)}`
+                  }} 
+                />
+              ))
             ) : (
               <p className="text-center text-muted py-8">
                 No active leagues found. Create one to get started!

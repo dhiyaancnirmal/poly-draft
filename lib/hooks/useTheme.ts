@@ -9,6 +9,7 @@ const STORAGE_KEY = "poly-theme";
 export function useTheme() {
   const [theme, setThemeState] = useState<ThemeChoice>("system");
   const [resolvedTheme, setResolvedTheme] = useState<"light" | "dark">("light");
+  const [hydrated, setHydrated] = useState(false);
 
   const setDocumentTheme = useCallback((value: "light" | "dark") => {
     document.documentElement.dataset.theme = value;
@@ -42,9 +43,12 @@ export function useTheme() {
       setResolvedTheme(systemTheme);
       setDocumentTheme(systemTheme);
     }
+    setHydrated(true);
   }, []);
 
   useEffect(() => {
+    if (!hydrated) return;
+
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
     const resolved = theme === "system" ? (mediaQuery.matches ? "dark" : "light") : theme;
 
@@ -62,7 +66,7 @@ export function useTheme() {
 
     mediaQuery.addEventListener("change", listener);
     return () => mediaQuery.removeEventListener("change", listener);
-  }, [theme]);
+  }, [theme, hydrated]);
 
   return {
     theme,

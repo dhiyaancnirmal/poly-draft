@@ -27,7 +27,11 @@ export default function HomePage() {
             </Button>
           </Link>
           <Link href="/app/leagues" className="w-full">
-            <Button variant="secondary" size="lg" className="w-full bg-surface-highlight/40 border-border/50 py-3">
+            <Button
+              variant="secondary"
+              size="lg"
+              className="w-full bg-surface-highlight/40 border-border/50 text-foreground py-3"
+            >
               <Trophy className="w-5 h-5 mr-2 text-primary" />
               Browse Leagues
             </Button>

@@ -64,7 +64,8 @@ class PolymarketWebSocketService {
     this.emitStatus('connecting');
 
     try {
-      this.ws = new WebSocket('wss://ws-subscriptions-clob.polymarket.com/ws/');
+      const wsUrl = this.resolveWebSocketUrl();
+      this.ws = new WebSocket(wsUrl);
 
       this.ws.onopen = () => {
         console.log('✅ Polymarket WebSocket connected');
@@ -122,6 +123,16 @@ class PolymarketWebSocketService {
       this.isConnecting = false;
       this.emitStatus('error');
     }
+  }
+
+  private resolveWebSocketUrl(): string {
+    // Use same-origin proxy if available
+    if (typeof window !== 'undefined') {
+      const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      return `${proto}//${window.location.host}/api/polymarket/ws`;
+    }
+    // SSR fallback (won't be used client-side)
+    return 'wss://ws-subscriptions-clob.polymarket.com/ws/';
   }
 
   // Handle incoming WebSocket messages

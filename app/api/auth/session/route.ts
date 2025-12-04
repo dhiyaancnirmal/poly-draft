@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
             .from("users")
             .select("id")
             .eq("fid", fid)
-            .maybeSingle();
+            .maybeSingle<{ id: string }>();
 
         if (lookupError) {
             return NextResponse.json(

@@ -16,39 +16,74 @@ export default function Splash() {
     setError(null);
 
     try {
-      // Use Farcaster Quick Auth to get authentication token
+      // Step 1: Get Farcaster authentication token
       const { token } = await sdk.quickAuth.getToken();
 
-      if (token) {
-        // Create Supabase client
-        const supabase = createClient();
-        
-        // For now, we'll create a simple user profile
-        // In production, you'd verify the Farcaster token and extract user info
-        const { data: { user }, error: authError } = await supabase.auth.signInAnonymously({
-          options: {
-            data: {
-              farcaster_token: token,
-              username: `User_${Date.now().toString(36).slice(0, 8)}`
-            }
+      if (!token) {
+        throw new Error('Failed to get authentication token');
+      }
+
+      // Step 2: Verify token with backend and get user data
+      const response = await sdk.quickAuth.fetch('/api/auth', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Backend authentication failed');
+      }
+
+      const authData = await response.json();
+
+      if (!authData.success || !authData.user) {
+        throw new Error('Invalid authentication response');
+      }
+
+      // Step 3: Create/update user in Supabase with verified FID
+      const supabase = createClient();
+
+      // Sign in anonymously and associate with Farcaster FID
+      const { data: { user }, error: authError } = await supabase.auth.signInAnonymously({
+        options: {
+          data: {
+            fid: authData.user.fid,
+            auth_method: 'farcaster'
           }
-        });
+        }
+      });
 
-        if (authError) {
-          throw authError;
+      if (authError) {
+        throw authError;
+      }
+
+      if (user) {
+        // Create or update user profile in database
+        const { error: profileError } = await supabase
+          .from('users')
+          .upsert({
+            id: user.id,
+            fid: authData.user.fid,
+            auth_method: 'farcaster',
+            last_active: new Date().toISOString()
+          } as any, {
+            onConflict: 'id'
+          });
+
+        if (profileError) {
+          console.error('Error creating user profile:', profileError);
+          // Don't throw, just log - user is authenticated
         }
 
-        if (user) {
-          // TODO: Create user profile later
-          console.log('User authenticated:', user.id);
-          
-          // Navigate to main app
-          router.push("/app");
-        }
+        console.log('User authenticated:', { userId: user.id, fid: authData.user.fid });
+
+        // Navigate to main app
+        router.push("/app");
       }
     } catch (error) {
       console.error("Sign in failed:", error);
-      setError("Authentication failed. Please try again.");
+      setError(error instanceof Error ? error.message : "Authentication failed. Please try again.");
     } finally {
       setIsLoading(false);
     }

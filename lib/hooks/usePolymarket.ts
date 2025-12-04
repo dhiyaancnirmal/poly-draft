@@ -1,11 +1,10 @@
 import { useQuery, UseQueryOptions } from '@tanstack/react-query';
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { fetchDailyMarkets, getTags, MarketSelection, Tag } from '@/lib/api/polymarket';
+import { fetchDailyMarkets, MarketSelection } from '@/lib/api/polymarket';
 
 // Query keys for React Query
 export const QUERY_KEYS = {
   dailyMarkets: ['daily-markets'],
-  tags: ['tags'],
   polymarket: ['polymarket'],
 } as const;
 
@@ -27,19 +26,6 @@ export function useDailyMarkets(targetDate?: Date, options?: Partial<UseQueryOpt
     refetchInterval: 1000 * 60 * 10, // Refresh every 10 minutes
     retry: 3,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-    ...options,
-  });
-}
-
-// Hook for fetching available tags
-export function useTags(options?: Partial<UseQueryOptions<Tag[], Error>>) {
-  return useQuery({
-    queryKey: QUERY_KEYS.tags,
-    queryFn: () => getTags(),
-    staleTime: 1000 * 60 * 60, // 1 hour - tags don't change often
-    refetchOnWindowFocus: false,
-    retry: 2,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
     ...options,
   });
 }

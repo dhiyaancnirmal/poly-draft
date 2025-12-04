@@ -512,15 +512,7 @@ GROUP BY u.id, u.display_name, u.wallet_address, u.wins, u.total_leagues, u.tota
 -- SAMPLE DATA (only one entry per table as requested)
 -- ========================================
 
--- Sample user
-INSERT INTO users (fid, display_name, wallet_address, username) 
-VALUES (12345, 'Sample User', '0x1234567890123456789012345678901234567890', 'sampleuser')
-ON CONFLICT (wallet_address) DO NOTHING;
-
--- Sample league
-INSERT INTO leagues (name, description, creator_address, end_time, max_players)
-VALUES ('Sample League', 'A sample fantasy league for testing', '0x1234567890123456789012345678901234567890', NOW() + INTERVAL '30 days', 6)
-ON CONFLICT (on_chain_id) DO NOTHING;
+-- No sample data - users and leagues are created through the app
 
 -- Sample market
 INSERT INTO markets (polymarket_id, title, description, category, end_time)

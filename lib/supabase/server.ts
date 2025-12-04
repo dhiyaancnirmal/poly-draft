@@ -4,6 +4,7 @@ import { cookies } from 'next/headers'
 
 export async function createClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  // IMPORTANT: SUPABASE_SECRET_KEY is server-only and must never be exposed to client-side code
   const supabaseSecretKey = process.env.SUPABASE_SECRET_KEY
 
   if (!supabaseUrl || !supabaseSecretKey) {

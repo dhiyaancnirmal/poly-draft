@@ -8,6 +8,7 @@ export interface UserProfile {
   username: string | null;
   avatar_url: string | null;
   wallet_address: string | null;
+  ens_name?: string | null;
   auth_method: 'farcaster' | 'wallet';
   bio: string | null;
   wins: number;
@@ -45,7 +46,17 @@ export function useUserProfile() {
           throw profileError;
         }
 
-        setProfile(data as UserProfile);
+        const userMetadata = user.user_metadata ?? {};
+        const mergedProfile: UserProfile = {
+          ...(data as UserProfile),
+          display_name: (data as UserProfile).display_name ?? userMetadata.display_name ?? null,
+          username: (data as UserProfile).username ?? userMetadata.username ?? null,
+          avatar_url: (data as UserProfile).avatar_url ?? userMetadata.avatar_url ?? null,
+          wallet_address: (data as UserProfile).wallet_address ?? userMetadata.wallet_address ?? null,
+          ens_name: userMetadata.ens_name ?? null,
+        };
+
+        setProfile(mergedProfile);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to fetch profile');
       } finally {

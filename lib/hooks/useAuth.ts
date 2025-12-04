@@ -9,6 +9,8 @@ export function useAuth() {
   const [username, setUsername] = useState<string | null>(null)
   const [displayName, setDisplayName] = useState<string | null>(null)
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
+  const [ensName, setEnsName] = useState<string | null>(null)
+  const [walletAddress, setWalletAddress] = useState<string | null>(null)
 
   useEffect(() => {
     const supabase = createClient()
@@ -20,6 +22,8 @@ export function useAuth() {
       setUsername(session?.user?.user_metadata?.username ?? null)
       setDisplayName(session?.user?.user_metadata?.display_name ?? null)
       setAvatarUrl(session?.user?.user_metadata?.avatar_url ?? null)
+      setEnsName(session?.user?.user_metadata?.ens_name ?? null)
+      setWalletAddress(session?.user?.user_metadata?.wallet_address ?? null)
       setLoading(false)
     })
 
@@ -31,6 +35,8 @@ export function useAuth() {
         setUsername(session?.user?.user_metadata?.username ?? null)
         setDisplayName(session?.user?.user_metadata?.display_name ?? null)
         setAvatarUrl(session?.user?.user_metadata?.avatar_url ?? null)
+        setEnsName(session?.user?.user_metadata?.ens_name ?? null)
+        setWalletAddress(session?.user?.user_metadata?.wallet_address ?? null)
         setLoading(false)
       }
     )
@@ -46,7 +52,9 @@ export function useAuth() {
     setUsername(null)
     setDisplayName(null)
     setAvatarUrl(null)
+    setEnsName(null)
+    setWalletAddress(null)
   }
 
-  return { user, loading, fid, username, displayName, avatarUrl, signOut }
+  return { user, loading, fid, username, displayName, avatarUrl, ensName, walletAddress, signOut }
 }

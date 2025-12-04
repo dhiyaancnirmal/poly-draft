@@ -98,6 +98,9 @@ export default function SettingsPage() {
                 {profile.username && (
                   <p className="text-sm text-muted">@{profile.username}</p>
                 )}
+                {profile.ens_name && (
+                  <p className="text-sm text-muted">{profile.ens_name}</p>
+                )}
                 {profile.fid && (
                   <Badge variant="default" className="mt-2 bg-purple-500/10 text-purple-400 border-purple-500/20">
                     FID: {profile.fid}

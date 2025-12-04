@@ -80,7 +80,9 @@ export default function Splash() {
         userId: sessionData.user?.id,
         fid: authData.user.fid,
         username: profileData.username,
-        displayName: profileData.displayName
+        displayName: profileData.displayName,
+        ens: profileData.ensName,
+        wallet: profileData.walletAddress
       });
 
       // Navigate to main app
@@ -124,14 +126,14 @@ export default function Splash() {
             </div>
           </Button>
 
-          {/* Test Mode Button */}
+          {/* Dev/Test Mode Button */}
           <Button
-            onClick={() => router.push("/app/draft/test")}
+            onClick={() => router.push("/app")}
             size="sm"
             variant="outline"
             className="w-full"
           >
-            🧪 Test Draft Room (No Auth Required)
+            🧪 Dev/Test Mode (No Auth Required)
           </Button>
 
           {error && (

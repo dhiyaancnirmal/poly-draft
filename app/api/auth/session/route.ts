@@ -24,6 +24,8 @@ type ProfileInput = {
     username?: string | null;
     displayName?: string | null;
     avatarUrl?: string | null;
+    ensName?: string | null;
+    walletAddress?: string | null;
 } | null;
 
 export async function POST(request: NextRequest) {
@@ -47,6 +49,8 @@ export async function POST(request: NextRequest) {
             username: profile?.username ?? null,
             display_name: profile?.displayName ?? null,
             avatar_url: profile?.avatarUrl ?? null,
+            ens_name: profile?.ensName ?? null,
+            wallet_address: profile?.walletAddress ?? null,
         };
 
         // Find existing user by fid
@@ -108,21 +112,33 @@ export async function POST(request: NextRequest) {
         }
 
         // Upsert profile keyed by fid to avoid duplicates
+        const upsertPayload: {
+            id?: string;
+            fid: number;
+            username?: string | null;
+            display_name?: string | null;
+            avatar_url?: string | null;
+            wallet_address?: string | null;
+            auth_method: "farcaster";
+            last_active: string;
+        } = {
+            id: userId,
+            fid,
+            username: profileFields.username,
+            display_name: profileFields.display_name,
+            avatar_url: profileFields.avatar_url,
+            auth_method: "farcaster",
+            last_active: new Date().toISOString(),
+        };
+
+        if (profileFields.wallet_address) {
+            upsertPayload.wallet_address = profileFields.wallet_address;
+        }
+
         const { error: upsertError } = await supabase
             .from("users")
             // @ts-expect-error Supabase types sometimes misalign on upsert options
-            .upsert(
-                {
-                    id: userId,
-                    fid,
-                    username: profileFields.username,
-                    display_name: profileFields.display_name,
-                    avatar_url: profileFields.avatar_url,
-                    auth_method: "farcaster",
-                    last_active: new Date().toISOString(),
-                },
-                { onConflict: "fid" }
-            );
+            .upsert(upsertPayload, { onConflict: "fid" });
 
         if (upsertError) {
             return NextResponse.json(
@@ -156,6 +172,8 @@ export async function POST(request: NextRequest) {
                     username: profileFields.username,
                     displayName: profileFields.display_name,
                     avatarUrl: profileFields.avatar_url,
+                    ensName: profileFields.ens_name ?? null,
+                    walletAddress: profileFields.wallet_address ?? null,
                 },
             },
             session: {

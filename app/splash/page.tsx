@@ -5,11 +5,15 @@ import { sdk } from "@farcaster/miniapp-sdk";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { createClient } from "@/lib/supabase/client";
+import { useProfile } from "@farcaster/auth-kit";
 
 export default function Splash() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+
+  // Get Farcaster profile data
+  const { isAuthenticated, profile } = useProfile();
 
   const handleSignIn = async () => {
     setIsLoading(true);
@@ -41,7 +45,7 @@ export default function Splash() {
         throw new Error('Invalid authentication response');
       }
 
-      // Step 3: Create/update user in Supabase with verified FID
+      // Step 3: Create/update user in Supabase with verified FID and profile
       const supabase = createClient();
 
       // Sign in anonymously and associate with Farcaster FID and profile
@@ -50,9 +54,9 @@ export default function Splash() {
           data: {
             fid: authData.user.fid,
             auth_method: 'farcaster',
-            username: authData.user.profile?.username || null,
-            display_name: authData.user.profile?.displayName || null,
-            avatar_url: authData.user.profile?.avatarUrl || null
+            username: profile?.username || null,
+            display_name: profile?.displayName || null,
+            avatar_url: profile?.pfpUrl || null
           }
         }
       });
@@ -79,7 +83,12 @@ export default function Splash() {
           // Don't throw, just log - user is authenticated
         }
 
-        console.log('User authenticated:', { userId: user.id, fid: authData.user.fid });
+        console.log('User authenticated:', { 
+          userId: user.id, 
+          fid: authData.user.fid,
+          username: profile?.username,
+          displayName: profile?.displayName 
+        });
 
         // Navigate to main app
         router.push("/app");

@@ -11,6 +11,7 @@ import { useAuth } from "@/lib/hooks";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createLeague, joinLeague } from "@/app/actions/leagues";
+import { startDraft } from "@/app/actions/draft";
 
 export default function LeaguesPage() {
   const { user } = useAuth();
@@ -37,6 +38,26 @@ export default function LeaguesPage() {
     } catch (error) {
       console.error('Error joining league:', error);
       alert('Failed to join league. Please try again.');
+    }
+  };
+
+  const handleStartDraft = async (leagueId: string) => {
+    if (!user) {
+      alert('Please sign in to start a draft');
+      return;
+    }
+
+    if (!confirm('Start the draft? This will lock the league and assign random draft order to all members.')) {
+      return;
+    }
+
+    try {
+      await startDraft(leagueId);
+      alert('Draft started!');
+      router.push(`/app/draft/${leagueId}`);
+    } catch (error: any) {
+      console.error('Error starting draft:', error);
+      alert(error.message || 'Failed to start draft. Please try again.');
     }
   };
 
@@ -125,6 +146,15 @@ export default function LeaguesPage() {
                             View Draft
                           </Button>
                         </Link>
+                      )}
+                      {league.status === 'open' && user?.id === league.creator_id && (
+                        <Button
+                          size="sm"
+                          variant="primary"
+                          onClick={() => handleStartDraft(league.id)}
+                        >
+                          Start Draft
+                        </Button>
                       )}
                       {user && !league.league_members?.some((m) => m.user_id === user.id) ? (
                         <Button

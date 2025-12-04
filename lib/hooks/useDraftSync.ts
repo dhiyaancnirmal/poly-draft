@@ -40,12 +40,18 @@ export function useDraftSync(leagueId: string) {
     // Realtime subscriptions
     const channel = supabase
       .channel(`draft-${leagueId}`)
-      .on('postgres_changes', 
+      .on('postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'picks' },
         (payload) => {
-          const newPicks = [...picks, payload.new as any]
-          setPicks(newPicks)
-          calculateCurrentTurn(newPicks, members)
+          setPicks((currentPicks) => {
+            const newPicks = [...currentPicks, payload.new as any]
+            // Use callback to access latest state
+            setMembers((currentMembers) => {
+              calculateCurrentTurn(newPicks, currentMembers)
+              return currentMembers // No change to members
+            })
+            return newPicks
+          })
         }
       )
       .on('postgres_changes',
@@ -84,7 +90,7 @@ export function useDraftSync(leagueId: string) {
     }
     
     const currentMember = currentMembers
-      .sort((a, b) => (a.draft_position || 0) - (b.draft_position || 0))
+      .sort((a, b) => (a.draft_order || 0) - (b.draft_order || 0))
       [currentPickIndex]
     
     setCurrentTurn(currentMember?.user_id || null)

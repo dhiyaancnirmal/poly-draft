@@ -63,14 +63,23 @@ export async function GET(request: NextRequest) {
     // Fetch user profile from Farcaster API
     let userProfile = null;
     try {
-      const profileResponse = await fetch(`https://fnames.farcaster.xyz/transfers?fid=${userFid}`);
+      // Use the official Farcaster API endpoint
+      const profileResponse = await fetch(`https://hub.farcaster.xyz/verificationsByFid?fid=${userFid}`);
       if (profileResponse.ok) {
         const profileData = await profileResponse.json();
-        userProfile = {
-          username: profileData.username,
-          displayName: profileData.displayName || profileData.username,
-          avatarUrl: profileData.pfp,
-        };
+        
+        // Parse user data from verifications
+        const username = profileData.messages?.find((msg: any) => msg.data.userDataBody?.type === 'USER_DATA_TYPE_USERNAME')?.data.userDataBody?.value;
+        const displayName = profileData.messages?.find((msg: any) => msg.data.userDataBody?.type === 'USER_DATA_TYPE_DISPLAY')?.data.userDataBody?.value;
+        const avatarUrl = profileData.messages?.find((msg: any) => msg.data.userDataBody?.type === 'USER_DATA_TYPE_PFP')?.data.userDataBody?.value;
+        
+        if (username || displayName || avatarUrl) {
+          userProfile = {
+            username: username || null,
+            displayName: displayName || username || null,
+            avatarUrl: avatarUrl || null,
+          };
+        }
       }
     } catch (error) {
       console.error('Failed to fetch Farcaster profile:', error);

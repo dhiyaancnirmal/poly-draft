@@ -7,10 +7,10 @@ interface BadgeProps {
   className?: string;
 }
 
-export const Badge: React.FC<BadgeProps> = ({ 
-  variant = 'default', 
-  children, 
-  className 
+export const Badge: React.FC<BadgeProps> = ({
+  variant = 'default',
+  children,
+  className
 }) => {
   const variants = {
     success: 'bg-success/20 text-success border border-success/30',
@@ -23,7 +23,7 @@ export const Badge: React.FC<BadgeProps> = ({
   return (
     <span
       className={cn(
-        'inline-flex items-center rounded-full px-2 py-1 text-xs font-medium',
+        'inline-flex items-center rounded-full px-3 py-1 text-xs font-bold tracking-wide shadow-sm',
         variants[variant],
         className
       )}

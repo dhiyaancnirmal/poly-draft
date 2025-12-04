@@ -12,29 +12,43 @@ const navigation = [
   { name: "Settings", href: "/app/settings", icon: Settings },
 ];
 
+import { motion } from "framer-motion";
+
 export function BottomNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-surface/90 backdrop-blur-lg border-t border-surface/20 z-50">
-      <div className="max-w-mobile mx-auto">
+    <nav className="fixed bottom-6 left-4 right-4 z-50">
+      <div className="absolute inset-0 bg-surface/80 backdrop-blur-xl border border-surface-highlight/50 rounded-full shadow-2xl" />
+      <div className="max-w-mobile mx-auto px-2 relative">
         <div className="flex justify-around items-center h-16">
           {navigation.map((item) => {
             const isActive = pathname === item.href;
-            
+
             return (
               <Link
                 key={item.name}
                 href={item.href}
-                className={cn(
-                  "flex flex-col items-center justify-center space-y-1 px-3 py-2 rounded-lg transition-colors min-h-touch",
-                  isActive
-                    ? "text-primary"
-                    : "text-muted hover:text-text"
-                )}
+                className="relative flex flex-col items-center justify-center w-16 h-full"
               >
-                <span className="text-xs font-medium">{item.name}</span>
-                <item.icon className="w-4 h-4" />
+                {isActive && (
+                  <motion.div
+                    layoutId="nav-pill"
+                    className="absolute inset-0 bg-primary/10 rounded-full my-2"
+                    transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                  />
+                )}
+                <div className={cn(
+                  "relative z-10 flex flex-col items-center space-y-1 transition-colors duration-200",
+                  isActive ? "text-primary" : "text-muted hover:text-text"
+                )}>
+                  <item.icon className={cn("w-5 h-5", isActive && "stroke-[2.5px]")} />
+                  {isActive && (
+                    <span className="text-[10px] font-bold animate-fade-in">
+                      {item.name}
+                    </span>
+                  )}
+                </div>
               </Link>
             );
           })}

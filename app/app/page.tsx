@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { LeagueCard, MarketCard } from "@/components/features";
 import { Button } from "@/components/ui/Button";
@@ -17,15 +18,19 @@ export default function HomePage() {
     <AppLayout title="PolyDraft">
       <div className="p-4 space-y-6">
         {/* Quick Actions */}
-        <div className="grid grid-cols-2 gap-3">
-          <Button size="lg" className="w-full">
-            <Plus className="w-4 h-4 mr-2" />
-            Create League
-          </Button>
-          <Button variant="outline" size="lg" className="w-full">
-            <Trophy className="w-4 h-4 mr-2" />
-            Browse Leagues
-          </Button>
+        <div className="flex flex-col gap-3">
+          <Link href="/app/create" className="w-full">
+            <Button size="lg" className="w-full shadow-lg shadow-primary/20">
+              <Plus className="w-5 h-5 mr-2" />
+              Create League
+            </Button>
+          </Link>
+          <Link href="/app/leagues" className="w-full">
+            <Button variant="secondary" size="lg" className="w-full bg-surface-highlight/30 border-surface-highlight/50">
+              <Trophy className="w-5 h-5 mr-2 text-primary" />
+              Browse Leagues
+            </Button>
+          </Link>
         </div>
 
         {/* Active Leagues */}
@@ -34,7 +39,7 @@ export default function HomePage() {
             <h2 className="text-lg font-semibold text-text">Active Leagues</h2>
             <Badge variant="info">Loading...</Badge>
           </div>
-          
+
           <div className="space-y-3">
             {isLoadingLeagues ? (
               <>
@@ -56,7 +61,7 @@ export default function HomePage() {
             <h2 className="text-lg font-semibold text-text">Trending Markets</h2>
             <Badge variant="success">Live</Badge>
           </div>
-          
+
           <div className="space-y-3">
             {isLoadingMarkets ? (
               <>

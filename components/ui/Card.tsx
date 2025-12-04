@@ -1,35 +1,41 @@
+"use client";
+
 import React from 'react';
 import { cn } from '@/lib/utils';
+import { motion, HTMLMotionProps } from 'framer-motion';
 
-interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
+interface CardProps extends HTMLMotionProps<"div"> {
   hoverable?: boolean;
   children: React.ReactNode;
 }
 
-export const Card: React.FC<CardProps> = ({ 
-  className, 
-  hoverable = false, 
-  children, 
-  ...props 
-}) => {
+export function Card({
+  className,
+  hoverable = false,
+  children,
+  ...props
+}: CardProps) {
   return (
-    <div
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: "easeOut" }}
       className={cn(
-        'rounded-card border border-surface/20 bg-surface/50 backdrop-blur-sm',
-        hoverable && 'hover:bg-surface/70 hover:border-surface/40 hover:shadow-lg transition-all duration-200',
+        'rounded-card border border-surface-highlight/50 bg-surface/60 backdrop-blur-xl shadow-card overflow-hidden',
+        hoverable && 'hover:bg-surface/80 hover:border-primary/20 transition-colors duration-300',
         className
       )}
       {...props}
     >
       {children}
-    </div>
+    </motion.div>
   );
-};
+}
 
-export const CardHeader: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({ 
-  className, 
-  children, 
-  ...props 
+export const CardHeader: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({
+  className,
+  children,
+  ...props
 }) => {
   return (
     <div
@@ -41,10 +47,10 @@ export const CardHeader: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({
   );
 };
 
-export const CardContent: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({ 
-  className, 
-  children, 
-  ...props 
+export const CardContent: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({
+  className,
+  children,
+  ...props
 }) => {
   return (
     <div
@@ -56,10 +62,10 @@ export const CardContent: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({
   );
 };
 
-export const CardFooter: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({ 
-  className, 
-  children, 
-  ...props 
+export const CardFooter: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({
+  className,
+  children,
+  ...props
 }) => {
   return (
     <div

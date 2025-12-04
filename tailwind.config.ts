@@ -10,13 +10,28 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        background: '#1a1b26',
-        surface: '#242530',
-        primary: '#ff6b9d',
-        success: '#10b981',
-        warning: '#f59e0b',
-        text: '#ffffff',
-        muted: '#a1a1aa',
+        background: 'var(--background)',
+        foreground: 'var(--foreground)',
+        surface: {
+          DEFAULT: 'var(--surface)',
+          highlight: 'var(--surface-highlight)',
+        },
+        primary: {
+          DEFAULT: 'var(--primary)',
+          foreground: 'var(--primary-foreground)',
+        },
+        secondary: {
+          DEFAULT: 'var(--secondary)',
+          foreground: 'var(--secondary-foreground)',
+        },
+        success: 'var(--success)',
+        warning: 'var(--warning)',
+        error: 'var(--error)',
+        muted: 'var(--muted)',
+        border: 'var(--border)',
+      },
+      fontFamily: {
+        sans: ['"TikTok Sans"', 'Helvetica', 'Arial', 'sans-serif'],
       },
       maxWidth: {
         mobile: '448px', // 28rem - mobile-first max width
@@ -36,7 +51,20 @@ const config: Config = {
         'touch': '44px', // Minimum touch target size
       },
       borderRadius: {
-        'card': '12px',
+        'sm': '8px',
+        DEFAULT: '12px',
+        'md': '16px',
+        'lg': '20px',
+        'xl': '24px',
+        '2xl': '32px',
+        '3xl': '40px',
+        'full': '9999px',
+        'card': '24px', // Deep rounding for cards
+        'pill': '9999px',
+      },
+      boxShadow: {
+        'glow': '0 0 20px -5px var(--primary)',
+        'card': '0 8px 30px rgba(0,0,0,0.12)',
       },
     },
   },

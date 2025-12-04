@@ -18,6 +18,12 @@ export async function createClient() {
       supabaseUrl,
       supabaseSecretKey,
       {
+        global: {
+          // Use service role on server to bypass RLS for trusted operations
+          headers: {
+            Authorization: `Bearer ${supabaseSecretKey}`,
+          },
+        },
         auth: {
           autoRefreshToken: false,
           persistSession: false,

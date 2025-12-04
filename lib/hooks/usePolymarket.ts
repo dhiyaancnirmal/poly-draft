@@ -2,7 +2,6 @@ import { useQuery, UseQueryOptions } from '@tanstack/react-query';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { fetchDailyMarkets, MarketSelection } from '@/lib/api/polymarket';
 import { MarketLivePrice } from '@/lib/types/polymarket';
-import { polymarketWS, ConnectionStatus, MarketTokenMapping, PriceUpdate } from '@/lib/websocket/polymarket';
 
 // Query keys for React Query
 export const QUERY_KEYS = {
@@ -105,24 +104,12 @@ export function useMarketSelection() {
 // Live price hook powered by CLOB WebSocket + price REST fallback
 export function usePolymarketLivePrices(markets?: MarketSelection[]) {
   const [livePrices, setLivePrices] = useState<Record<string, MarketLivePrice>>({});
-  const [status, setStatus] = useState<ConnectionStatus>('idle');
+  const [status, setStatus] = useState<'idle' | 'connected' | 'error'>('idle');
   const [error, setError] = useState<string | null>(null);
 
-  // Map markets to token IDs (YES = index 0, NO = index 1)
-  const tokenMappings = useMemo<MarketTokenMapping[]>(() => {
+  const marketIds = useMemo(() => {
     if (!markets || markets.length === 0) return [];
-
-    return markets.flatMap((selection) => {
-      const tokens = selection.market.clobTokenIds
-        ? selection.market.clobTokenIds.split(',').map((t) => t.trim()).filter(Boolean)
-        : [];
-
-      return tokens.map((tokenId, index) => ({
-        marketId: selection.market.id,
-        tokenId,
-        outcome: index === 0 ? 'YES' : 'NO',
-      }));
-    });
+    return markets.map((m) => m.market.id);
   }, [markets]);
 
   // Seed baseline prices from static market data
@@ -146,17 +133,19 @@ export function usePolymarketLivePrices(markets?: MarketSelection[]) {
     setLivePrices((prev) => ({ ...baseline, ...prev }));
   }, [markets]);
 
-  // Fetch current prices via REST as a fast initial snapshot
+  // Fetch current prices via REST as a fast initial snapshot and poll
   useEffect(() => {
     if (!markets || markets.length === 0) return;
 
+    let mounted = true;
     const controller = new AbortController();
+
     const fetchPrices = async () => {
       try {
         const response = await fetch('/api/polymarket/price', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ marketIds: markets.map((m) => m.market.id) }),
+          body: JSON.stringify({ marketIds }),
           signal: controller.signal,
         });
 
@@ -178,77 +167,35 @@ export function usePolymarketLivePrices(markets?: MarketSelection[]) {
               };
             }
           });
-          setLivePrices((prev) => ({ ...prev, ...snapshot }));
+          if (mounted) {
+            setLivePrices((prev) => ({ ...prev, ...snapshot }));
+            setStatus('connected');
+            setError(null);
+          }
         }
       } catch (err) {
         if (!(err instanceof DOMException && err.name === 'AbortError')) {
           console.error(err);
-          setError('Unable to load live prices');
+          if (mounted) {
+            setStatus('error');
+            setError('Unable to load live prices');
+          }
         }
       }
     };
 
+    // initial fetch
     fetchPrices();
-    return () => controller.abort();
-  }, [markets]);
 
-  // Subscribe to WebSocket for real-time updates
-  useEffect(() => {
-    if (tokenMappings.length === 0) return;
-
-    let mounted = true;
-
-    const handleStatus = (next: ConnectionStatus) => {
-      if (!mounted) return;
-      setStatus(next);
-      if (next === 'error') {
-        setError('WebSocket connection error');
-      }
-    };
-
-    const seenMarkets = new Set<string>();
-    tokenMappings.forEach(({ marketId }) => {
-      if (seenMarkets.has(marketId)) return;
-      seenMarkets.add(marketId);
-
-      polymarketWS.onPriceUpdate(marketId, (update: PriceUpdate) => {
-        if (!mounted) return;
-        setLivePrices((prev) => {
-          const current = prev[marketId];
-          const priceChange =
-            update.priceChange !== undefined
-              ? update.priceChange
-              : current?.yesPrice !== undefined
-                ? update.yesPrice - current.yesPrice
-                : undefined;
-
-          return {
-            ...prev,
-            [marketId]: {
-              yesPrice: update.yesPrice,
-              noPrice: update.noPrice,
-              priceChange,
-              lastUpdated: update.timestamp,
-              source: 'ws',
-            },
-          };
-        });
-      });
-    });
-
-    polymarketWS.onStatusChange(handleStatus);
-    setStatus(polymarketWS.getStatus());
-    polymarketWS.subscribeToTokens(tokenMappings, true);
+    // poll every 10s
+    const interval = setInterval(fetchPrices, 10000);
 
     return () => {
       mounted = false;
-      polymarketWS.offStatusChange(handleStatus);
-      const uniqueMarkets = Array.from(new Set(tokenMappings.map((m) => m.marketId)));
-      const uniqueTokens = Array.from(new Set(tokenMappings.map((m) => m.tokenId)));
-      uniqueMarkets.forEach((marketId) => polymarketWS.removeCallbacks(marketId));
-      polymarketWS.unsubscribeFromTokens(uniqueTokens);
+      controller.abort();
+      clearInterval(interval);
     };
-  }, [tokenMappings]);
+  }, [markets, marketIds]);
 
   return {
     livePrices,

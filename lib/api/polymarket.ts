@@ -262,8 +262,9 @@ export async function fetchDailyMarkets(targetDate?: Date): Promise<MarketSelect
         if (!parsedOutcomePrices || parsedOutcomePrices.length < 2) return null;
 
         const [yesPrice, noPrice] = parsedOutcomePrices;
-        // Skip if either price exceeds 65%
-        if (yesPrice > 0.65 || noPrice > 0.65) return null;
+        // Skip if prices are outside the 15%–85% band to avoid extreme odds
+        const outOfRange = [yesPrice, noPrice].some((p) => p < 0.15 || p > 0.85);
+        if (outOfRange) return null;
 
         const outcomesArray: string[] = Array.isArray(market.outcomes)
           ? market.outcomes.map((o: any) => String(o))

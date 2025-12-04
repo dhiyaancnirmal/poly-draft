@@ -1,32 +1,33 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useMiniKit } from "@coinbase/onchainkit/minikit";
+import { sdk } from "@farcaster/miniapp-sdk";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 
 export default function Splash() {
-  const { isFrameReady, setFrameReady } = useMiniKit();
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
-
-  // Initialize miniapp
-  useEffect(() => {
-    if (!isFrameReady) {
-      setFrameReady();
-    }
-  }, [setFrameReady, isFrameReady]);
 
   const handleSignIn = async () => {
     setIsLoading(true);
+    setError(null);
+
     try {
-      // For now, just navigate to main app
-      // In production, this would handle Base authentication
-      setTimeout(() => {
+      // Use Farcaster Quick Auth to get authentication token
+      const { token } = await sdk.quickAuth.getToken();
+
+      if (token) {
+        // Store token in localStorage for later use
+        localStorage.setItem("auth_token", token);
+
+        // Navigate to main app
         router.push("/app");
-      }, 1000);
+      }
     } catch (error) {
       console.error("Sign in failed:", error);
+      setError("Authentication failed. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -53,16 +54,22 @@ export default function Splash() {
             size="lg"
             className="w-full"
           >
-            <div className="flex items-center justify-center space-x-3">
+            <div className="flex items-center justify-center space-x-2">
+              <span>Sign in with</span>
               <img
                 src="https://cdn.brandfetch.io/id6XsSOVVS/theme/light/logo.svg?c=1bxid64Mup7aczewSAYMX&t=1757929761243"
-                alt="Base Logo"
-                className="h-5 w-5"
+                alt="Base"
+                className="h-5 w-auto"
               />
-              <span>Sign in with Base</span>
             </div>
           </Button>
-          
+
+          {error && (
+            <p className="text-xs text-warning">
+              {error}
+            </p>
+          )}
+
           <p className="text-xs text-muted">
             By signing in, you agree to our Terms of Service and Privacy Policy
           </p>

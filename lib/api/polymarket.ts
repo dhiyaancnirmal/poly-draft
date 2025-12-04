@@ -286,8 +286,44 @@ export async function fetchDailyMarkets(targetDate?: Date): Promise<MarketSelect
       })
       .filter(Boolean) as Array<MarketSelection & { sortVolume: number }>;
 
-    const topMarkets = filtered
-      .sort((a, b) => b.sortVolume - a.sortVolume)
+    // Enforce minimum category diversity: aim for at least 2 per category when available,
+    // then fill remaining slots by highest volume.
+    const grouped = new Map<string, Array<MarketSelection & { sortVolume: number }>>();
+    const sortByVolumeDesc = (a: { sortVolume: number }, b: { sortVolume: number }) =>
+      b.sortVolume - a.sortVolume;
+
+    for (const item of filtered) {
+      const cat = item.category || 'other';
+      if (!grouped.has(cat)) grouped.set(cat, []);
+      grouped.get(cat)!.push(item);
+    }
+
+    // Sort each category by volume
+    for (const [, items] of grouped) {
+      items.sort(sortByVolumeDesc);
+    }
+
+    const selection: Array<MarketSelection & { sortVolume: number }> = [];
+
+    // First pass: take up to 2 from each category (ensures diversity if available)
+    for (const [, items] of grouped) {
+      const take = Math.min(2, items.length);
+      selection.push(...items.slice(0, take));
+    }
+
+    // Second pass: fill remaining slots by overall volume
+    if (selection.length < 20) {
+      const remainingPool = Array.from(grouped.values())
+        .flatMap((items) => items)
+        .filter((item) => !selection.includes(item))
+        .sort(sortByVolumeDesc);
+
+      const slotsLeft = 20 - selection.length;
+      selection.push(...remainingPool.slice(0, slotsLeft));
+    }
+
+    const topMarkets = selection
+      .sort(sortByVolumeDesc)
       .slice(0, 20)
       .map(({ sortVolume, ...rest }) => rest);
 

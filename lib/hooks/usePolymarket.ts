@@ -104,7 +104,7 @@ export function useMarketSelection() {
 // Live price hook powered by CLOB WebSocket + price REST fallback
 export function usePolymarketLivePrices(markets?: MarketSelection[]) {
   const [livePrices, setLivePrices] = useState<Record<string, MarketLivePrice>>({});
-  const [status, setStatus] = useState<'idle' | 'connected' | 'error'>('idle');
+  const [status, setStatus] = useState<'idle' | 'connecting' | 'connected' | 'error'>('idle');
   const [error, setError] = useState<string | null>(null);
 
   const marketIds = useMemo(() => {

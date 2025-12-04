@@ -53,6 +53,11 @@ async function getTokenPrice(tokenId: string): Promise<{ price: number; size: nu
       }
     });
 
+    if (response.status === 404) {
+      // Order book missing for this token (paused/non-CLOB/resolved); treat as no live price
+      return null;
+    }
+
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
@@ -126,11 +131,20 @@ export async function GET(request: NextRequest) {
       getTokenPrice(tokenIds.noTokenId)
     ]);
 
+    // Soft fallback: if either leg is missing, return partial so UI can keep static prices
     if (!yesPrice || !noPrice) {
-      return NextResponse.json(
-        { error: 'Could not fetch prices for one or both tokens' },
-        { status: 500 }
-      );
+      const priceData = {
+        marketId,
+        yesPrice: yesPrice?.price ?? null,
+        noPrice: noPrice?.price ?? null,
+        yesSize: yesPrice?.size ?? null,
+        noSize: noPrice?.size ?? null,
+        liveUnavailable: true,
+        timestamp: Date.now(),
+        lastUpdated: new Date().toISOString()
+      };
+      setCachedPrice(marketId, priceData);
+      return NextResponse.json(priceData);
     }
 
     const priceData = {

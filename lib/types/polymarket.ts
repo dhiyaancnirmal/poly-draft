@@ -287,9 +287,20 @@ export interface ExtendedMarketCardProps {
     slug?: string;
     liquidity?: string;
     active?: boolean;
+    clobTokenIds?: string[];
   };
   loading?: boolean;
   onSelect?: (marketId: string, side: 'YES' | 'NO') => void;
   selectedSide?: 'YES' | 'NO' | null;
   selectedMarket?: string | null;
+  livePrice?: MarketLivePrice;
+  isLive?: boolean;
+}
+
+export interface MarketLivePrice {
+  yesPrice: number;
+  noPrice: number;
+  priceChange?: number;
+  lastUpdated?: number;
+  source?: 'ws' | 'rest' | 'static';
 }

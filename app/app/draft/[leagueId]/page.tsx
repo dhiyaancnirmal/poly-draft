@@ -7,10 +7,9 @@ import { MarketCard } from "@/components/features";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { SkeletonText } from "@/components/ui/Skeleton";
-import { useDailyMarkets, useMarketSelection, useDraftTimer } from "@/lib/hooks/usePolymarket";
+import { useDailyMarkets, useMarketSelection, useDraftTimer, usePolymarketLivePrices } from "@/lib/hooks/usePolymarket";
 import { useDraftSync } from "@/lib/hooks/useDraftSync";
 import { useAuth } from "@/lib/hooks";
-import { MarketSelection } from "@/lib/types/polymarket";
 
 export default function DraftRoomPage() {
   const params = useParams();
@@ -22,6 +21,7 @@ export default function DraftRoomPage() {
 
   // Market data (from server proxy)
   const { data: marketSelections, isLoading, error } = useDailyMarkets();
+  const { livePrices, status: liveStatus } = usePolymarketLivePrices(marketSelections);
 
   // Local selection state
   const { selectedMarket, selectedSide, selectMarket } = useMarketSelection();
@@ -66,13 +66,28 @@ export default function DraftRoomPage() {
     return (
       <AppLayout title="Draft Room">
         <div className="p-4 space-y-6">
-          <div className="text-center">
+          {/* Draft Status Skeleton */}
+          <div className="text-center space-y-2">
             <SkeletonText lines={1} className="w-32 mx-auto" />
+            <SkeletonText lines={1} className="w-48 mx-auto" />
           </div>
-          <div className="grid grid-cols-3 gap-2">
-            {Array.from({ length: 12 }).map((_, i) => (
-              <div key={i} className="aspect-square bg-surface rounded-lg animate-pulse" />
-            ))}
+
+          {/* Draft Board Skeleton - Horizontal */}
+          <div className="space-y-3">
+            <SkeletonText lines={1} className="w-24" />
+            <div className="flex gap-3 justify-center items-center">
+              <div className="flex-1 max-w-[120px] aspect-square bg-surface rounded-lg animate-pulse" />
+              <div className="flex-1 max-w-[140px] aspect-square bg-surface rounded-lg animate-pulse" />
+              <div className="flex-1 max-w-[120px] aspect-square bg-surface rounded-lg animate-pulse" />
+            </div>
+          </div>
+
+          {/* Available Markets Skeleton */}
+          <div className="space-y-3">
+            <SkeletonText lines={1} className="w-32" />
+            <MarketCard loading />
+            <MarketCard loading />
+            <MarketCard loading />
           </div>
         </div>
       </AppLayout>
@@ -223,11 +238,14 @@ export default function DraftRoomPage() {
                       category: selection.category,
                       slug: selection.market.slug,
                       liquidity: selection.market.liquidity,
-                      active: selection.market.active,
+                    active: selection.market.active,
+                    clobTokenIds: selection.market.clobTokenIds?.split(',').map((token) => token.trim()),
                     }}
                     onSelect={selectMarket}
                     selectedSide={selectedSide}
                     selectedMarket={selectedMarket}
+                  livePrice={livePrices[selection.market.id]}
+                  isLive={liveStatus === 'connected'}
                   />
                 </div>
               ))}

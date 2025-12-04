@@ -52,15 +52,33 @@ async function fetchWithCache(url: string, cacheKey: string): Promise<any> {
 
 // Category detection from market data
 export function detectMarketCategory(event: PolymarketEvent): MarketCategory {
-  const { title, category } = event;
+  const { title, category, categories, tags } = event;
 
-  // Use explicit category first
-  if (category) {
-    const normalizedCategory = category.toLowerCase();
+  // Prefer native Polymarket categories/tags when available
+  const candidateCategories = [
+    category,
+    ...(categories || []).map((c) => c.label || c.slug),
+    ...(tags || []).map((t) => t.label || t.slug),
+  ]
+    .filter(Boolean)
+    .map((c) => c!.toLowerCase());
+
+  for (const candidate of candidateCategories) {
     for (const value of Object.values(MARKET_CATEGORIES)) {
-      if (normalizedCategory.includes(value)) {
+      if (candidate.includes(value)) {
         return value as MarketCategory;
       }
+    }
+
+    // Explicit category hints
+    if (candidate.includes('sports') || candidate.includes('nfl') || candidate.includes('nba')) {
+      return MARKET_CATEGORIES.SPORTS;
+    }
+    if (candidate.includes('crypto') || candidate.includes('defi')) {
+      return MARKET_CATEGORIES.CRYPTO;
+    }
+    if (candidate.includes('finance') || candidate.includes('markets')) {
+      return MARKET_CATEGORIES.FINANCE;
     }
   }
 
@@ -76,14 +94,19 @@ export function detectMarketCategory(event: PolymarketEvent): MarketCategory {
   // Crypto patterns
   if (titleLower.includes('bitcoin') || titleLower.includes('btc') ||
       titleLower.includes('ethereum') || titleLower.includes('eth') ||
-      titleLower.includes('crypto') || titleLower.includes('coin')) {
+      titleLower.includes('crypto') || titleLower.includes('coin') ||
+      titleLower.includes('solana') || titleLower.includes('sol') ||
+      titleLower.includes('doge') || titleLower.includes('token')) {
     return MARKET_CATEGORIES.CRYPTO;
   }
 
   // Finance patterns
   if (titleLower.includes('s&p') || titleLower.includes('stock') ||
       titleLower.includes('nasdaq') || titleLower.includes('dow') ||
-      titleLower.includes('index')) {
+      titleLower.includes('index') || titleLower.includes('interest') ||
+      titleLower.includes('inflation') || titleLower.includes('treasury') ||
+      titleLower.includes('bond') || titleLower.includes('rate') ||
+      titleLower.includes('fed')) {
     return MARKET_CATEGORIES.FINANCE;
   }
 
@@ -97,13 +120,17 @@ export function detectMarketCategory(event: PolymarketEvent): MarketCategory {
   // Technology patterns
   if (titleLower.includes('elon') || titleLower.includes('musk') ||
       titleLower.includes('twitter') || titleLower.includes('tesla') ||
-      titleLower.includes('apple') || titleLower.includes('google')) {
+      titleLower.includes('apple') || titleLower.includes('google') ||
+      titleLower.includes('ai') || titleLower.includes('openai') ||
+      titleLower.includes('nvidia') || titleLower.includes('chip')) {
     return MARKET_CATEGORIES.TECHNOLOGY;
   }
 
   // Business patterns
   if (titleLower.includes('earnings') || titleLower.includes('revenue') ||
-      titleLower.includes('profit') || titleLower.includes('sales')) {
+      titleLower.includes('profit') || titleLower.includes('sales') ||
+      titleLower.includes('ipo') || titleLower.includes('merger') ||
+      titleLower.includes('acquisition')) {
     return MARKET_CATEGORIES.BUSINESS;
   }
 
@@ -116,7 +143,12 @@ export function detectMarketCategory(event: PolymarketEvent): MarketCategory {
   // Sports patterns
   if (titleLower.includes('game') || titleLower.includes('match') ||
       titleLower.includes('team') || titleLower.includes('win') ||
-      titleLower.includes('score') || titleLower.includes('season')) {
+      titleLower.includes('score') || titleLower.includes('season') ||
+      titleLower.includes('nfl') || titleLower.includes('nba') ||
+      titleLower.includes('mlb') || titleLower.includes('nhl') ||
+      titleLower.includes('soccer') || titleLower.includes('football') ||
+      titleLower.includes('fifa') || titleLower.includes('world cup') ||
+      titleLower.includes('olympics')) {
     return MARKET_CATEGORIES.SPORTS;
   }
 

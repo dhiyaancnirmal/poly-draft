@@ -7,12 +7,13 @@ import { formatVolume, formatEndTime } from "@/lib/api/polymarket";
 
 interface MarketCardProps extends ExtendedMarketCardProps {
   loading?: boolean;
+  className?: string;
 }
 
-export function MarketCard({ market, loading, onSelect, selectedSide, selectedMarket }: MarketCardProps) {
+export function MarketCard({ market, loading, onSelect, selectedSide, selectedMarket, livePrice, isLive, className }: MarketCardProps) {
   if (loading) {
     return (
-      <Card>
+      <Card className={className}>
         <CardHeader>
           <SkeletonText lines={2} />
         </CardHeader>
@@ -33,14 +34,15 @@ export function MarketCard({ market, loading, onSelect, selectedSide, selectedMa
 
   // Parse outcome prices for YES/NO
   const outcomePrices = market.outcomePrices || [];
-  const yesPrice = outcomePrices[0] || 0.5;
-  const noPrice = outcomePrices[1] || 0.5;
+  const yesPrice = livePrice?.yesPrice ?? outcomePrices[0] ?? 0.5;
+  const noPrice = livePrice?.noPrice ?? outcomePrices[1] ?? 0.5;
   
-  const priceChange = 0; // Placeholder for real-time price changes
+  const priceChange = livePrice?.priceChange ?? 0;
+  const priceChangeLabel = priceChange !== 0 ? `${priceChange > 0 ? '+' : ''}${(priceChange * 100).toFixed(1)}%` : '—';
   const isSelected = selectedMarket === market.id;
 
   return (
-    <Card hoverable className={`group ${isSelected ? 'ring-2 ring-primary' : ''}`}>
+    <Card hoverable className={`group h-full ${isSelected ? 'ring-2 ring-primary' : ''} ${className ?? ''}`}>
       <CardHeader>
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1">
@@ -54,7 +56,8 @@ export function MarketCard({ market, loading, onSelect, selectedSide, selectedMa
             )}
           </div>
           <Badge variant={priceChange > 0 ? 'success' : priceChange < 0 ? 'error' : 'default'}>
-            {priceChange > 0 ? '↑' : priceChange < 0 ? '↓' : '→'}
+            {isLive ? 'Live • ' : ''}
+            {priceChange > 0 ? '↑' : priceChange < 0 ? '↓' : '→'} {priceChangeLabel}
           </Badge>
         </div>
       </CardHeader>

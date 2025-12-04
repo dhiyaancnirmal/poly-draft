@@ -60,13 +60,31 @@ export async function GET(request: NextRequest) {
     // If the token was valid, `payload.sub` will be the user's Farcaster ID.
     const userFid = payload.sub;
 
-    // Return user information for your waitlist application
+    // Fetch user profile from Farcaster API
+    let userProfile = null;
+    try {
+      const profileResponse = await fetch(`https://fnames.farcaster.xyz/transfers?fid=${userFid}`);
+      if (profileResponse.ok) {
+        const profileData = await profileResponse.json();
+        userProfile = {
+          username: profileData.username,
+          displayName: profileData.displayName || profileData.username,
+          avatarUrl: profileData.pfp,
+        };
+      }
+    } catch (error) {
+      console.error('Failed to fetch Farcaster profile:', error);
+      // Continue without profile data
+    }
+
+    // Return user information with profile
     return NextResponse.json({
       success: true,
       user: {
         fid: userFid,
         issuedAt: payload.iat,
         expiresAt: payload.exp,
+        profile: userProfile,
       },
     });
 

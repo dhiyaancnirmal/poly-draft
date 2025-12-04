@@ -118,15 +118,24 @@ export default function LeaguesPage() {
                     entryFee: 'Free'
                   }}
                   action={
-                    user && !league.league_members?.some((m) => m.user_id === user.id) ? (
-                      <Button
-                        size="sm"
-                        onClick={() => handleJoinLeague(league.id)}
-                        disabled={displayStatus === 'full' || displayStatus === 'completed'}
-                      >
-                        {displayStatus === 'full' ? 'Full' : displayStatus === 'completed' ? 'Ended' : 'Join'}
-                      </Button>
-                    ) : null
+                    <>
+                      {league.status === 'drafting' && (
+                        <Link href={`/app/draft/${league.id}`}>
+                          <Button size="sm" variant="primary">
+                            View Draft
+                          </Button>
+                        </Link>
+                      )}
+                      {user && !league.league_members?.some((m) => m.user_id === user.id) ? (
+                        <Button
+                          size="sm"
+                          onClick={() => handleJoinLeague(league.id)}
+                          disabled={displayStatus === 'full' || displayStatus === 'completed'}
+                        >
+                          {displayStatus === 'full' ? 'Full' : displayStatus === 'completed' ? 'Ended' : 'Join'}
+                        </Button>
+                      ) : null}
+                    </>
                   }
                 />
               );

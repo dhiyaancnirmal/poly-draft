@@ -13,7 +13,16 @@ export const QUERY_KEYS = {
 export function useDailyMarkets(targetDate?: Date, options?: Partial<UseQueryOptions<MarketSelection[], Error>>) {
   return useQuery({
     queryKey: [...QUERY_KEYS.dailyMarkets, targetDate?.toISOString()],
-    queryFn: () => fetchDailyMarkets(targetDate),
+    queryFn: async () => {
+      // Use API route instead of direct fetch to Polymarket (fixes CORS)
+      const url = targetDate
+        ? `/api/polymarket/daily-markets?date=${targetDate.toISOString()}`
+        : '/api/polymarket/daily-markets'
+
+      const response = await fetch(url)
+      if (!response.ok) throw new Error('Failed to fetch markets')
+      return response.json()
+    },
     staleTime: 1000 * 60 * 5, // 5 minutes
     refetchInterval: 1000 * 60 * 10, // Refresh every 10 minutes
     retry: 3,

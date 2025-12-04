@@ -6,6 +6,9 @@ export function useAuth() {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const [fid, setFid] = useState<number | null>(null)
+  const [username, setUsername] = useState<string | null>(null)
+  const [displayName, setDisplayName] = useState<string | null>(null)
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
 
   useEffect(() => {
     const supabase = createClient()
@@ -14,6 +17,9 @@ export function useAuth() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null)
       setFid(session?.user?.user_metadata?.fid ?? null)
+      setUsername(session?.user?.user_metadata?.username ?? null)
+      setDisplayName(session?.user?.user_metadata?.display_name ?? null)
+      setAvatarUrl(session?.user?.user_metadata?.avatar_url ?? null)
       setLoading(false)
     })
 
@@ -22,6 +28,9 @@ export function useAuth() {
       (event, session) => {
         setUser(session?.user ?? null)
         setFid(session?.user?.user_metadata?.fid ?? null)
+        setUsername(session?.user?.user_metadata?.username ?? null)
+        setDisplayName(session?.user?.user_metadata?.display_name ?? null)
+        setAvatarUrl(session?.user?.user_metadata?.avatar_url ?? null)
         setLoading(false)
       }
     )
@@ -34,7 +43,10 @@ export function useAuth() {
     await supabase.auth.signOut()
     setUser(null)
     setFid(null)
+    setUsername(null)
+    setDisplayName(null)
+    setAvatarUrl(null)
   }
 
-  return { user, loading, fid, signOut }
+  return { user, loading, fid, username, displayName, avatarUrl, signOut }
 }

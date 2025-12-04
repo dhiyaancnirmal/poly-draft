@@ -44,12 +44,15 @@ export default function Splash() {
       // Step 3: Create/update user in Supabase with verified FID
       const supabase = createClient();
 
-      // Sign in anonymously and associate with Farcaster FID
+      // Sign in anonymously and associate with Farcaster FID and profile
       const { data: { user }, error: authError } = await supabase.auth.signInAnonymously({
         options: {
           data: {
             fid: authData.user.fid,
-            auth_method: 'farcaster'
+            auth_method: 'farcaster',
+            username: authData.user.profile?.username || null,
+            display_name: authData.user.profile?.displayName || null,
+            avatar_url: authData.user.profile?.avatarUrl || null
           }
         }
       });

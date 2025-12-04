@@ -41,61 +41,50 @@ export default function Splash() {
         throw new Error('Invalid authentication response');
       }
 
-      // Step 3: Create/update user in Supabase with verified FID and profile
+      // Step 3: Reuse/create Supabase user by fid on the server (sets session)
       const supabase = createClient();
-
-      // Get profile data from backend response
       const profileData = authData.user.profile || {};
 
-      // Sign in anonymously and associate with Farcaster FID and profile
-      const { data: { user }, error: authError } = await supabase.auth.signInAnonymously({
-        options: {
-          data: {
-            fid: authData.user.fid,
-            auth_method: 'farcaster',
-            username: profileData.username || null,
-            display_name: profileData.displayName || null,
-            avatar_url: profileData.avatarUrl || null
-          }
-        }
+      const sessionResponse = await fetch('/api/auth/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fid: authData.user.fid,
+          profile: profileData
+        })
       });
 
-      if (authError) {
-        throw authError;
+      if (!sessionResponse.ok) {
+        const errorBody = await sessionResponse.json().catch(() => null);
+        throw new Error(errorBody?.message || 'Failed to establish session');
       }
 
-      if (user) {
-        // Create or update user profile in database
-        const { error: profileError } = await supabase
-          .from('users')
-          // @ts-expect-error - TypeScript has issues with Supabase upsert types
-          .upsert({
-            id: user.id,
-            fid: authData.user.fid,
-            auth_method: 'farcaster',
-            username: profileData.username || null,
-            display_name: profileData.displayName || null,
-            avatar_url: profileData.avatarUrl || null,
-            last_active: new Date().toISOString()
-          }, {
-            onConflict: 'id'
-          });
+      const sessionData = await sessionResponse.json();
 
-        if (profileError) {
-          console.error('Error creating user profile:', profileError);
-          throw new Error(`Failed to create user profile: ${profileError.message}`);
-        }
-
-        console.log('User authenticated:', {
-          userId: user.id,
-          fid: authData.user.fid,
-          username: profileData.username,
-          displayName: profileData.displayName
-        });
-
-        // Navigate to main app
-        router.push("/app");
+      if (!sessionData.success || !sessionData.session) {
+        throw new Error('Invalid session response');
       }
+
+      // Store session locally so the client Supabase instance is aware immediately
+      const { access_token, refresh_token } = sessionData.session;
+      const { error: setSessionError } = await supabase.auth.setSession({
+        access_token,
+        refresh_token,
+      });
+
+      if (setSessionError) {
+        throw setSessionError;
+      }
+
+      console.log('User authenticated:', {
+        userId: sessionData.user?.id,
+        fid: authData.user.fid,
+        username: profileData.username,
+        displayName: profileData.displayName
+      });
+
+      // Navigate to main app
+      router.push("/app");
     } catch (error) {
       console.error("Sign in failed:", error);
       setError(error instanceof Error ? error.message : "Authentication failed. Please try again.");

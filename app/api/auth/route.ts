@@ -60,8 +60,12 @@ export async function GET(request: NextRequest) {
     // If the token was valid, `payload.sub` will be the user's Farcaster ID.
     const userFid = payload.sub;
 
-    // Fetch user profile from Farcaster Neynar API (more reliable than hub)
-    let userProfile = null;
+    // Fetch user profile from Farcaster Neynar public API (no key required)
+    let userProfile = {
+      username: null as string | null,
+      displayName: null as string | null,
+      avatarUrl: null as string | null,
+    };
     try {
       // Use Neynar's public API to fetch user data (no API key required for basic lookups)
       const profileResponse = await fetch(`https://api.neynar.com/v2/farcaster/user/bulk?fids=${userFid}`, {
@@ -74,13 +78,12 @@ export async function GET(request: NextRequest) {
         const profileData = await profileResponse.json();
         const user = profileData.users?.[0];
 
-        if (user) {
-          userProfile = {
-            username: user.username || null,
-            displayName: user.display_name || user.username || null,
-            avatarUrl: user.pfp_url || null,
-          };
-        }
+        const username = user?.username || null;
+        userProfile = {
+          username,
+          displayName: user?.display_name || username || null,
+          avatarUrl: user?.pfp_url || null,
+        };
       }
     } catch (error) {
       console.error('Failed to fetch Farcaster profile:', error);

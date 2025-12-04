@@ -60,24 +60,25 @@ export async function GET(request: NextRequest) {
     // If the token was valid, `payload.sub` will be the user's Farcaster ID.
     const userFid = payload.sub;
 
-    // Fetch user profile from Farcaster API
+    // Fetch user profile from Farcaster Neynar API (more reliable than hub)
     let userProfile = null;
     try {
-      // Use the official Farcaster API endpoint
-      const profileResponse = await fetch(`https://hub.farcaster.xyz/verificationsByFid?fid=${userFid}`);
+      // Use Neynar's public API to fetch user data (no API key required for basic lookups)
+      const profileResponse = await fetch(`https://api.neynar.com/v2/farcaster/user/bulk?fids=${userFid}`, {
+        headers: {
+          'accept': 'application/json'
+        }
+      });
+
       if (profileResponse.ok) {
         const profileData = await profileResponse.json();
-        
-        // Parse user data from verifications
-        const username = profileData.messages?.find((msg: any) => msg.data.userDataBody?.type === 'USER_DATA_TYPE_USERNAME')?.data.userDataBody?.value;
-        const displayName = profileData.messages?.find((msg: any) => msg.data.userDataBody?.type === 'USER_DATA_TYPE_DISPLAY')?.data.userDataBody?.value;
-        const avatarUrl = profileData.messages?.find((msg: any) => msg.data.userDataBody?.type === 'USER_DATA_TYPE_PFP')?.data.userDataBody?.value;
-        
-        if (username || displayName || avatarUrl) {
+        const user = profileData.users?.[0];
+
+        if (user) {
           userProfile = {
-            username: username || null,
-            displayName: displayName || username || null,
-            avatarUrl: avatarUrl || null,
+            username: user.username || null,
+            displayName: user.display_name || user.username || null,
+            avatarUrl: user.pfp_url || null,
           };
         }
       }

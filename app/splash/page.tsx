@@ -1,19 +1,15 @@
 "use client";
- 
-import { useState, useEffect } from "react";
+
+import { useState } from "react";
 import { sdk } from "@farcaster/miniapp-sdk";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { createClient } from "@/lib/supabase/client";
-import { useProfile } from "@farcaster/auth-kit";
 
 export default function Splash() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
-
-  // Get Farcaster profile data
-  const { isAuthenticated, profile } = useProfile();
 
   const handleSignIn = async () => {
     setIsLoading(true);
@@ -48,15 +44,18 @@ export default function Splash() {
       // Step 3: Create/update user in Supabase with verified FID and profile
       const supabase = createClient();
 
+      // Get profile data from backend response
+      const profileData = authData.user.profile || {};
+
       // Sign in anonymously and associate with Farcaster FID and profile
       const { data: { user }, error: authError } = await supabase.auth.signInAnonymously({
         options: {
           data: {
             fid: authData.user.fid,
             auth_method: 'farcaster',
-            username: profile?.username || null,
-            display_name: profile?.displayName || null,
-            avatar_url: profile?.pfpUrl || null
+            username: profileData.username || null,
+            display_name: profileData.displayName || null,
+            avatar_url: profileData.avatarUrl || null
           }
         }
       });
@@ -69,12 +68,16 @@ export default function Splash() {
         // Create or update user profile in database
         const { error: profileError } = await supabase
           .from('users')
+          // @ts-expect-error - TypeScript has issues with Supabase upsert types
           .upsert({
             id: user.id,
             fid: authData.user.fid,
             auth_method: 'farcaster',
+            username: profileData.username || null,
+            display_name: profileData.displayName || null,
+            avatar_url: profileData.avatarUrl || null,
             last_active: new Date().toISOString()
-          } as any, {
+          }, {
             onConflict: 'id'
           });
 
@@ -83,11 +86,11 @@ export default function Splash() {
           // Don't throw, just log - user is authenticated
         }
 
-        console.log('User authenticated:', { 
-          userId: user.id, 
+        console.log('User authenticated:', {
+          userId: user.id,
           fid: authData.user.fid,
-          username: profile?.username,
-          displayName: profile?.displayName 
+          username: profileData.username,
+          displayName: profileData.displayName
         });
 
         // Navigate to main app
@@ -130,6 +133,16 @@ export default function Splash() {
                 className="h-5 w-auto"
               />
             </div>
+          </Button>
+
+          {/* Test Mode Button */}
+          <Button
+            onClick={() => router.push("/app/draft/test")}
+            size="sm"
+            variant="outline"
+            className="w-full"
+          >
+            🧪 Test Draft Room (No Auth Required)
           </Button>
 
           {error && (

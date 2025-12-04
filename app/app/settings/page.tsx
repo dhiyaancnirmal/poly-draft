@@ -20,13 +20,21 @@ interface SettingsSection {
   items: SettingsItem[];
 }
 
+import { useAccount } from "wagmi";
+
 export default function SettingsPage() {
+  const { address } = useAccount();
+
   const sections: SettingsSection[] = [
     {
       title: "Account",
       items: [
-        { icon: User, label: "Profile Settings", value: "CryptoKing.eth" },
-        { icon: Wallet, label: "Connected Wallet", value: "0x12...5678" },
+        { icon: User, label: "Profile Settings", value: "User" },
+        {
+          icon: Wallet,
+          label: "Connected Wallet",
+          value: address ? `${address.slice(0, 6)}...${address.slice(-4)}` : "Not Connected"
+        },
         { icon: Bell, label: "Notifications", value: "On" },
       ]
     },

@@ -1,42 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useAccount } from "wagmi";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
-import { SkeletonText } from "@/components/ui/Skeleton";
-
-// User data will be fetched from API - showing skeleton loaders initially
 
 export default function ProfilePage() {
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 1200);
-    return () => clearTimeout(timer);
-  }, []);
-
-  if (isLoading) {
-    return (
-      <AppLayout title="Profile">
-        <div className="p-4 space-y-6">
-          <div className="text-center">
-            <div className="w-20 h-20 bg-surface rounded-full mx-auto mb-4 animate-pulse" />
-            <SkeletonText lines={2} className="w-32 mx-auto" />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="bg-surface rounded-lg p-4">
-                <SkeletonText lines={1} />
-                <SkeletonText lines={1} className="w-16" />
-              </div>
-            ))}
-          </div>
-        </div>
-      </AppLayout>
-    );
-  }
+  const { address, isConnected } = useAccount();
 
   return (
     <AppLayout title="Profile">
@@ -56,10 +27,14 @@ export default function ProfilePage() {
               </Badge>
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-text">CryptoKing.eth</h2>
+              <h2 className="text-2xl font-bold text-text">
+                {isConnected ? "User" : "Guest"}
+              </h2>
               <div className="flex items-center justify-center gap-2 mt-1">
                 <Badge variant="default" className="bg-surface-highlight/50 backdrop-blur-md">
-                  0x1234...5678
+                  {isConnected && address
+                    ? `${address.slice(0, 6)}...${address.slice(-4)}`
+                    : "Not Connected"}
                 </Badge>
               </div>
             </div>

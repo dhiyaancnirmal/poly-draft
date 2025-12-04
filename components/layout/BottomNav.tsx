@@ -32,10 +32,8 @@ export function BottomNav() {
                 className="relative flex flex-col items-center justify-center w-16 h-full"
               >
                 {isActive && (
-                  <motion.div
-                    layoutId="nav-pill"
-                    className="absolute inset-0 bg-primary/10 rounded-full my-2"
-                    transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                  <span
+                    className="absolute -top-3 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-primary shadow-[0_0_8px_rgba(var(--primary),0.8)]"
                   />
                 )}
                 <div className={cn(

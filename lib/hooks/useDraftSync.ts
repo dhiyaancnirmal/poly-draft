@@ -3,8 +3,8 @@ import { createClient } from '@/lib/supabase/client'
 import { Database } from '@/lib/supabase'
 
 export function useDraftSync(leagueId: string) {
-  const [picks, setPicks] = useState<Database['public']['Tables']['picks']['Row']>([])
-  const [members, setMembers] = useState<Database['public']['Tables']['league_members']['Row']>([])
+  const [picks, setPicks] = useState<Database['public']['Tables']['picks']['Row'][]>([])
+  const [members, setMembers] = useState<Database['public']['Tables']['league_members']['Row'][]>([])
   const [currentTurn, setCurrentTurn] = useState<string | null>(null)
   const [isConnected, setIsConnected] = useState(false)
 
@@ -15,13 +15,21 @@ export function useDraftSync(leagueId: string) {
 
     // Initial data fetch
     const fetchDraftData = async () => {
-      const [picksRes, membersRes] = await Promise.all([
-        supabase.from('picks').select('*').eq('league_id', leagueId),
-        supabase.from('league_members').select('*').eq('league_id', leagueId)
-      ])
+      const { data: picksData } = await supabase
+        .from('picks')
+        .select('*')
+        .eq('league_id', leagueId as any)
 
-      setPicks(picksRes.data || [])
-      setMembers(membersRes.data || [])
+      const { data: membersData } = await supabase
+        .from('league_members')
+        .select('*')
+        .eq('league_id', leagueId as any)
+
+      const picksRes = { data: picksData }
+      const membersRes = { data: membersData }
+
+      setPicks((picksRes.data || []) as any)
+      setMembers((membersRes.data || []) as any)
       
       // Calculate current turn based on snake draft logic
       calculateCurrentTurn(picksRes.data || [], membersRes.data || [])
@@ -42,11 +50,11 @@ export function useDraftSync(leagueId: string) {
       )
       .on('postgres_changes',
         { event: '*', schema: 'public', table: 'league_members' },
-        (payload) => {
-          const updatedMembers = members.map(member => 
-            member.id === payload.new.id ? payload.new as any : member
+        (payload: any) => {
+          const updatedMembers = members.map(member =>
+            member.id === payload.new.id ? payload.new : member
           )
-          setMembers(updatedMembers)
+          setMembers(updatedMembers as any)
           calculateCurrentTurn(picks, updatedMembers)
         }
       )
@@ -54,7 +62,9 @@ export function useDraftSync(leagueId: string) {
         setIsConnected(status === 'SUBSCRIBED')
       })
 
-    return () => supabase.removeChannel(channel)
+    return () => {
+      supabase.removeChannel(channel)
+    }
   }, [leagueId])
 
   const calculateCurrentTurn = (currentPicks: any[], currentMembers: any[]) => {
@@ -91,11 +101,15 @@ export function useDraftSync(leagueId: string) {
       .from('picks')
       .insert({
         league_id: leagueId,
-        market_id: marketId,
+        user_id: user.id,
+        wallet_address: user.email || '',  // TODO: Get actual wallet address
+        market_id: marketId,  // This should be a UUID
+        outcome_id: marketId,  // This should be a UUID
+        market_id_text: marketId,
         outcome_side: outcomeSide,
         round: Math.floor(picks.length / members.length) + 1,
         pick_number: picks.length + 1
-      })
+      } as any)
       .select()
       .single()
 

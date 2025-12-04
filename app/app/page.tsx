@@ -49,20 +49,30 @@ export default function HomePage() {
                 <LeagueCard loading />
               </>
             ) : leagues.length > 0 ? (
-              leagues.map((league) => (
-                <LeagueCard 
-                  key={league.id} 
-                  league={{
-                    id: league.id,
-                    name: league.name,
-                    members: league.league_members?.length || 0,
-                    maxMembers: league.max_players,
-                    prizePool: `$${(league.entry_fee * (league.league_members?.length || 0)).toFixed(2)}`,
-                    status: league.status,
-                    entryFee: `$${league.entry_fee.toFixed(2)}`
-                  }} 
-                />
-              ))
+              leagues.map((league) => {
+                // Map database status to component status
+                const getDisplayStatus = (): 'active' | 'full' | 'completed' => {
+                  if (league.status === 'ended' || league.status === 'cancelled') return 'completed';
+                  const isFull = (league.league_members?.length || 0) >= league.max_players;
+                  if (isFull) return 'full';
+                  return 'active';
+                };
+
+                return (
+                  <LeagueCard
+                    key={league.id}
+                    league={{
+                      id: league.id,
+                      name: league.name,
+                      members: league.league_members?.length || 0,
+                      maxMembers: league.max_players,
+                      prizePool: league.mode === 'competitive' ? 'TBD' : 'Social',
+                      status: getDisplayStatus(),
+                      entryFee: 'Free'
+                    }}
+                  />
+                );
+              })
             ) : (
               <p className="text-center text-muted py-8">
                 No active leagues found. Create one to get started!

@@ -1,23 +1,27 @@
 import { createClient } from '@/lib/supabase/server';
 
+type TableInfo = {
+  table_name: string;
+};
+
 export async function GET() {
   try {
     const supabase = await createClient();
-    
+
     // Try to query from information_schema directly
     const { data: existingTables, error: schemaError } = await supabase
       .from('information_schema.tables')
         .select('table_name')
         .eq('table_schema', 'public');
-    
+
     if (schemaError) {
-      return Response.json({ 
-        success: false, 
-        error: schemaError.message 
+      return Response.json({
+        success: false,
+        error: schemaError.message
       }, { status: 500 });
     }
-    
-    const tableNames = existingTables?.map(t => t.table_name) || [];
+
+    const tableNames = (existingTables as TableInfo[] | null)?.map(t => t.table_name) || [];
     
     return Response.json({ 
       success: true, 

@@ -2,7 +2,10 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Database } from '@/lib/supabase'
 
-type League = Database['public']['Tables']['leagues']['Row']
+type League = Database['public']['Tables']['leagues']['Row'] & {
+  league_members?: Array<{ id: string; user_id: string }>;
+}
+
 type LeagueInsert = Database['public']['Tables']['leagues']['Insert']
 
 export function useLeagues() {
@@ -11,21 +14,20 @@ export function useLeagues() {
 
   useEffect(() => {
     const supabase = createClient()
-    
+
     const fetchLeagues = async () => {
       const { data, error } = await supabase
         .from('leagues')
         .select(`
           *,
-          creator:profiles(username, avatar_url),
-          league_members(count)
+          league_members(id, user_id)
         `)
         .order('created_at', { ascending: false })
 
       if (error) {
         console.error('Error fetching leagues:', error)
       } else {
-        setLeagues(data || [])
+        setLeagues((data as any) || [])
       }
       setLoading(false)
     }
@@ -35,20 +37,22 @@ export function useLeagues() {
     // Realtime subscription
     const channel = supabase
       .channel('leagues')
-      .on('postgres_changes', 
+      .on('postgres_changes',
         { event: '*', schema: 'public', table: 'leagues' },
         fetchLeagues
       )
       .subscribe()
 
-    return () => supabase.removeChannel(channel)
+    return () => {
+      supabase.removeChannel(channel)
+    }
   }, [])
 
   const createLeague = async (leagueData: LeagueInsert) => {
     const supabase = createClient()
     const { data, error } = await supabase
       .from('leagues')
-      .insert(leagueData)
+      .insert(leagueData as any)
       .select()
       .single()
 
@@ -66,8 +70,9 @@ export function useLeagues() {
       .from('league_members')
       .insert({
         league_id: leagueId,
-        user_id: user.id
-      })
+        user_id: user.id,
+        wallet_address: user.email || ''  // TODO: Get actual wallet address
+      } as any)
       .select()
       .single()
 

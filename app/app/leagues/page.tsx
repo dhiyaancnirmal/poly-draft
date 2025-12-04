@@ -94,31 +94,43 @@ export default function LeaguesPage() {
               <LeagueCard loading />
             </>
           ) : filteredLeagues.length > 0 ? (
-            filteredLeagues.map((league) => (
-              <LeagueCard 
-                key={league.id} 
-                league={{
-                  id: league.id,
-                  name: league.name,
-                  members: league.league_members?.length || 0,
-                  maxMembers: league.max_players,
-                  prizePool: `$${(league.entry_fee * (league.league_members?.length || 0)).toFixed(2)}`,
-                  status: league.status,
-                  entryFee: `$${league.entry_fee.toFixed(2)}`
-                }}
+            filteredLeagues.map((league) => {
+              // Map database status to component status
+              const getDisplayStatus = (): 'active' | 'full' | 'completed' => {
+                if (league.status === 'ended' || league.status === 'cancelled') return 'completed';
+                const isFull = (league.league_members?.length || 0) >= league.max_players;
+                if (isFull) return 'full';
+                return 'active';
+              };
+
+              const displayStatus = getDisplayStatus();
+
+              return (
+                <LeagueCard
+                  key={league.id}
+                  league={{
+                    id: league.id,
+                    name: league.name,
+                    members: league.league_members?.length || 0,
+                    maxMembers: league.max_players,
+                    prizePool: league.mode === 'competitive' ? 'TBD' : 'Social',
+                    status: displayStatus,
+                    entryFee: 'Free'
+                  }}
                   action={
-                  user && !league.league_members?.some((m: any) => m.user_id === user.id) ? (
-                    <Button 
-                      size="sm" 
-                      onClick={() => handleJoinLeague(league.id)}
-                      disabled={league.status === 'full'}
-                    >
-                      {league.status === 'full' ? 'Full' : 'Join'}
-                    </Button>
-                  ) : null
-                }
-              />
-            ))
+                    user && !league.league_members?.some((m) => m.user_id === user.id) ? (
+                      <Button
+                        size="sm"
+                        onClick={() => handleJoinLeague(league.id)}
+                        disabled={displayStatus === 'full' || displayStatus === 'completed'}
+                      >
+                        {displayStatus === 'full' ? 'Full' : displayStatus === 'completed' ? 'Ended' : 'Join'}
+                      </Button>
+                    ) : null
+                  }
+                />
+              );
+            })
           ) : (
             <div className="text-center py-8">
               <p className="text-muted">

@@ -63,7 +63,11 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        let userId = existingUser?.id as string | undefined;
+    let userId: string | undefined;
+
+    if (existingUser && "id" in existingUser) {
+      userId = (existingUser as { id?: string | null }).id ?? undefined;
+    }
 
         if (userId) {
             const { error: updateError } = await supabase.auth.admin.updateUserById(

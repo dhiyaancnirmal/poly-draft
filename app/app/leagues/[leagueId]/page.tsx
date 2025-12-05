@@ -12,6 +12,11 @@ type Props = {
   params: { leagueId: string };
 };
 
+function isUuid(value: string | undefined | null) {
+  if (!value) return false;
+  return /^[0-9a-fA-F-]{36}$/.test(value.trim());
+}
+
 const statusMeta: Record<string, { label: string; color: string }> = {
   open: { label: "Open", color: "bg-green-500/80" },
   drafting: { label: "Drafting", color: "bg-primary" },
@@ -21,6 +26,30 @@ const statusMeta: Record<string, { label: string; color: string }> = {
 };
 
 export default async function LeagueDashboardPage({ params }: Props) {
+  const leagueId = params.leagueId;
+  if (!isUuid(leagueId)) {
+    return (
+      <AppLayout title="League">
+        <div className="p-4">
+          <Card className="border border-border/60 bg-surface/70">
+            <CardContent className="space-y-3 py-6">
+              <p className="text-lg font-semibold text-foreground">Unable to load league</p>
+              <p className="text-sm text-muted">Invalid league id.</p>
+              <div className="flex gap-2">
+                <Link
+                  href="/app/leagues"
+                  className="inline-flex items-center rounded-lg border border-border/80 px-3 py-1.5 text-sm font-semibold text-foreground hover:border-primary hover:text-primary transition-colors"
+                >
+                  Back to Leagues
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </AppLayout>
+    );
+  }
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -42,7 +71,7 @@ export default async function LeagueDashboardPage({ params }: Props) {
         league_members(team_name,user_id,joined_at)
       `
     )
-    .eq("id", params.leagueId)
+    .eq("id", leagueId)
     .single();
 
   if (error || !league) {

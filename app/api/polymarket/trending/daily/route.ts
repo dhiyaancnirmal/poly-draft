@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { fetchTrendingMarkets } from "@/lib/api/polymarket";
 
-export const revalidate = 300; // 5 minutes
+// Explicitly mark as dynamic to silence static rendering warnings
+export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {

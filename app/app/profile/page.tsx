@@ -4,58 +4,18 @@
  */
 "use client";
 
-import { useEffect, useState } from "react";
-import { sdk } from "@farcaster/miniapp-sdk";
 import { AppLayout } from "@/components/layout/AppLayout";
-
-type MiniAppUser = {
-  fid: number;
-  username?: string;
-  displayName?: string;
-  pfpUrl?: string;
-};
+import { useMiniAppUser } from "@/lib/hooks";
 
 export default function ProfilePage() {
-  const [user, setUser] = useState<MiniAppUser | null>(null);
-  const [isInMiniApp, setIsInMiniApp] = useState<boolean | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let mounted = true;
-
-    const load = async () => {
-      try {
-        const inMiniApp = await sdk.isInMiniApp();
-        if (!mounted) return;
-        setIsInMiniApp(inMiniApp);
-
-        if (!inMiniApp) {
-          return;
-        }
-
-        const context = await sdk.context;
-        if (!mounted) return;
-        setUser(context.user);
-      } catch (err) {
-        console.error("Failed to load mini app context", err);
-        if (!mounted) return;
-        setError("Unable to load profile. Please reopen in the Base app.");
-      }
-    };
-
-    load();
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
+  const { user, isInMiniApp, loading, error } = useMiniAppUser();
 
   const renderBody = () => {
     if (error) {
       return <p className="text-destructive text-sm">{error}</p>;
     }
 
-    if (isInMiniApp === null) {
+    if (loading || isInMiniApp === null) {
       return <p className="text-muted">Loading profile…</p>;
     }
 

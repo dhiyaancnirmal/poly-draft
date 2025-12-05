@@ -2,7 +2,7 @@
 
 import { ReactNode } from "react";
 import Link from "next/link";
-import { useAuth } from "@/lib/hooks";
+import { useAuth, useMiniAppUser } from "@/lib/hooks";
 import { BottomNav } from "./BottomNav";
 
 interface AppLayoutProps {
@@ -13,7 +13,13 @@ interface AppLayoutProps {
 
 export function AppLayout({ children, title, rightAction }: AppLayoutProps) {
   const { displayName, username, avatarUrl } = useAuth();
-  const profileLabel = displayName || username || "Guest";
+  const { user: miniUser } = useMiniAppUser();
+
+  const profileLabel =
+    miniUser?.displayName ||
+    miniUser?.username ||
+    (miniUser?.fid ? `FID ${miniUser.fid}` : displayName || username || "Guest");
+  const profileAvatar = miniUser?.pfpUrl || avatarUrl;
   const profileInitials = (profileLabel || "G").slice(0, 2).toUpperCase();
 
   return (
@@ -34,9 +40,9 @@ export function AppLayout({ children, title, rightAction }: AppLayoutProps) {
                 className="flex-shrink-0 flex items-center gap-2 rounded-full bg-surface-highlight/80 border border-border/70 px-3 py-2 shadow-sm transition hover:border-primary/60 hover:shadow-md"
               >
                 <div className="h-9 w-9 rounded-full overflow-hidden border border-primary/30 bg-primary/15 flex items-center justify-center text-sm font-semibold text-primary">
-                  {avatarUrl ? (
+                  {profileAvatar ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={avatarUrl} alt="Profile" className="h-full w-full object-cover" />
+                    <img src={profileAvatar} alt="Profile" className="h-full w-full object-cover" />
                   ) : (
                     <span>{profileInitials}</span>
                   )}

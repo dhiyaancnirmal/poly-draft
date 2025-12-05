@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { User, Bell, Shield, Palette, HelpCircle, LogOut, ChevronRight, Wallet, Copy, ExternalLink } from "lucide-react";
 import { useUserProfile } from "@/hooks/useUserProfile";
+import { useMiniAppUser } from "@/lib/hooks";
 import { LucideIcon } from "lucide-react";
 import { useState } from "react";
 
@@ -24,6 +25,7 @@ interface SettingsSection {
 
 export default function SettingsPage() {
   const { profile, loading } = useUserProfile();
+  const { user: miniUser, isInMiniApp, loading: miniLoading, error: miniError } = useMiniAppUser();
   const [copied, setCopied] = useState(false);
 
   const copyToClipboard = (text: string) => {
@@ -54,7 +56,7 @@ export default function SettingsPage() {
     <AppLayout title="Settings">
       <div className="p-4 space-y-6 pb-24">
         {/* Profile Section */}
-        {loading ? (
+        {loading || miniLoading ? (
           <Card className="p-6">
             <div className="animate-pulse space-y-4">
               <div className="flex items-center gap-4">
@@ -66,25 +68,25 @@ export default function SettingsPage() {
               </div>
             </div>
           </Card>
-        ) : profile ? (
+        ) : (miniUser || profile) ? (
           <Card className="p-6 space-y-6">
             {/* Profile Header */}
             <div className="flex items-start gap-4">
               <div className="relative">
-                {profile.avatar_url ? (
+                {(miniUser?.pfpUrl || profile?.avatar_url) ? (
                   <img
-                    src={profile.avatar_url}
-                    alt={profile.display_name || profile.username || 'User'}
+                    src={miniUser?.pfpUrl || profile?.avatar_url || ""}
+                    alt={miniUser?.displayName || miniUser?.username || profile?.display_name || profile?.username || 'User'}
                     className="w-20 h-20 rounded-full object-cover border-2 border-primary/20"
                   />
                 ) : (
                   <div className="w-20 h-20 bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center border-2 border-primary/20">
                     <span className="text-2xl font-bold text-white">
-                      {(profile.display_name || profile.username || 'U')[0].toUpperCase()}
+                      {(miniUser?.displayName || miniUser?.username || profile?.display_name || profile?.username || 'U')[0].toUpperCase()}
                     </span>
                   </div>
                 )}
-                {profile.auth_method === 'farcaster' && (
+                {profile?.auth_method === 'farcaster' && (
                   <div className="absolute -bottom-1 -right-1 w-7 h-7 bg-purple-500 rounded-full flex items-center justify-center border-2 border-background">
                     <span className="text-xs">🟣</span>
                   </div>
@@ -93,37 +95,45 @@ export default function SettingsPage() {
 
               <div className="flex-1 min-w-0">
                 <h2 className="text-xl font-bold text-text truncate">
-                  {profile.display_name || profile.username || 'Anonymous User'}
+                  {miniUser?.displayName || miniUser?.username || profile?.display_name || profile?.username || (profile?.fid ? `FID ${profile.fid}` : 'Anonymous User')}
                 </h2>
-                {profile.username && (
-                  <p className="text-sm text-muted">@{profile.username}</p>
+                {(miniUser?.username || profile?.username) && (
+                  <p className="text-sm text-muted">@{miniUser?.username || profile?.username}</p>
                 )}
-                {profile.fid && (
+                {(miniUser?.fid ?? profile?.fid) && (
                   <Badge variant="default" className="mt-2 bg-purple-500/10 text-purple-400 border-purple-500/20">
-                    FID: {profile.fid}
+                    FID: {miniUser?.fid ?? profile?.fid}
                   </Badge>
+                )}
+                {miniError && (
+                  <p className="text-xs text-destructive mt-1">{miniError}</p>
+                )}
+                {isInMiniApp === false && (
+                  <p className="text-xs text-muted mt-1">Open in the Base app to see your live profile data.</p>
                 )}
               </div>
             </div>
 
             {/* Stats */}
-            <div className="grid grid-cols-3 gap-4 py-4 border-y border-surface-highlight/50">
-              <div className="text-center">
-                <p className="text-2xl font-bold text-primary">{profile.wins}</p>
-                <p className="text-xs text-muted">Wins</p>
+            {profile ? (
+              <div className="grid grid-cols-3 gap-4 py-4 border-y border-surface-highlight/50">
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-primary">{profile.wins}</p>
+                  <p className="text-xs text-muted">Wins</p>
+                </div>
+                <div className="text-center border-x border-surface-highlight/50">
+                  <p className="text-2xl font-bold text-primary">{profile.total_leagues}</p>
+                  <p className="text-xs text-muted">Leagues</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-primary">{profile.total_points}</p>
+                  <p className="text-xs text-muted">Points</p>
+                </div>
               </div>
-              <div className="text-center border-x border-surface-highlight/50">
-                <p className="text-2xl font-bold text-primary">{profile.total_leagues}</p>
-                <p className="text-xs text-muted">Leagues</p>
-              </div>
-              <div className="text-center">
-                <p className="text-2xl font-bold text-primary">{profile.total_points}</p>
-                <p className="text-xs text-muted">Points</p>
-              </div>
-            </div>
+            ) : null}
 
             {/* Wallet Address */}
-            {profile.wallet_address && (
+            {profile?.wallet_address && (
               <div className="space-y-2">
                 <p className="text-xs font-semibold text-muted uppercase tracking-wider">Wallet Address</p>
                 <div className="flex items-center gap-2 p-3 bg-surface-highlight/30 rounded-lg">
@@ -156,7 +166,7 @@ export default function SettingsPage() {
             )}
 
             {/* Farcaster Link */}
-            {profile.username && (
+            {profile?.username && (
               <Button
                 variant="outline"
                 className="w-full justify-center gap-2"

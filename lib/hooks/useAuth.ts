@@ -18,9 +18,12 @@ export function useAuth() {
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null)
-      setFid(session?.user?.user_metadata?.fid ?? null)
+      const fidValue = session?.user?.user_metadata?.fid ?? null
+      setFid(fidValue)
       setUsername(session?.user?.user_metadata?.username ?? null)
-      setDisplayName(session?.user?.user_metadata?.display_name ?? null)
+      // Fallback to fid to avoid empty labels now that we only persist fid
+      const derivedDisplay = session?.user?.user_metadata?.display_name ?? (fidValue ? `FID ${fidValue}` : null)
+      setDisplayName(derivedDisplay)
       setAvatarUrl(session?.user?.user_metadata?.avatar_url ?? null)
       setEnsName(session?.user?.user_metadata?.ens_name ?? null)
       setWalletAddress(session?.user?.user_metadata?.wallet_address ?? null)
@@ -31,9 +34,11 @@ export function useAuth() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         setUser(session?.user ?? null)
-        setFid(session?.user?.user_metadata?.fid ?? null)
+        const fidValue = session?.user?.user_metadata?.fid ?? null
+        setFid(fidValue)
         setUsername(session?.user?.user_metadata?.username ?? null)
-        setDisplayName(session?.user?.user_metadata?.display_name ?? null)
+        const derivedDisplay = session?.user?.user_metadata?.display_name ?? (fidValue ? `FID ${fidValue}` : null)
+        setDisplayName(derivedDisplay)
         setAvatarUrl(session?.user?.user_metadata?.avatar_url ?? null)
         setEnsName(session?.user?.user_metadata?.ens_name ?? null)
         setWalletAddress(session?.user?.user_metadata?.wallet_address ?? null)

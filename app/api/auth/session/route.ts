@@ -20,19 +20,10 @@ function derivePassword(fid: number) {
     return crypto.createHmac("sha256", secret).update(String(fid)).digest("hex");
 }
 
-type ProfileInput = {
-    username?: string | null;
-    displayName?: string | null;
-    avatarUrl?: string | null;
-    ensName?: string | null;
-    walletAddress?: string | null;
-} | null;
-
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
         const fid = body?.fid as number | undefined;
-        const profile = (body?.profile ?? null) as ProfileInput;
 
         if (!fid || Number.isNaN(fid)) {
             return NextResponse.json(
@@ -44,14 +35,6 @@ export async function POST(request: NextRequest) {
         const supabase = await createClient();
         const email = deriveEmail(fid);
         const password = derivePassword(fid);
-
-        const profileFields = {
-            username: profile?.username ?? null,
-            display_name: profile?.displayName ?? null,
-            avatar_url: profile?.avatarUrl ?? null,
-            ens_name: profile?.ensName ?? null,
-            wallet_address: profile?.walletAddress ?? null,
-        };
 
         // Find existing user by fid
         const { data: existingUser, error: lookupError } = await supabase
@@ -80,7 +63,7 @@ export async function POST(request: NextRequest) {
                     email,
                     password,
                     email_confirm: true,
-                    user_metadata: { fid, ...profileFields },
+                    user_metadata: { fid },
                     app_metadata: { auth_method: "farcaster" },
                 }
             );
@@ -97,7 +80,7 @@ export async function POST(request: NextRequest) {
                     email,
                     password,
                     email_confirm: true,
-                    user_metadata: { fid, ...profileFields },
+                    user_metadata: { fid },
                     app_metadata: { auth_method: "farcaster" },
                 });
 
@@ -115,25 +98,14 @@ export async function POST(request: NextRequest) {
         const upsertPayload: {
             id?: string;
             fid: number;
-            username?: string | null;
-            display_name?: string | null;
-            avatar_url?: string | null;
-            wallet_address?: string | null;
             auth_method: "farcaster";
             last_active: string;
         } = {
             id: userId,
             fid,
-            username: profileFields.username,
-            display_name: profileFields.display_name,
-            avatar_url: profileFields.avatar_url,
             auth_method: "farcaster",
             last_active: new Date().toISOString(),
         };
-
-        if (profileFields.wallet_address) {
-            upsertPayload.wallet_address = profileFields.wallet_address;
-        }
 
         const { error: upsertError } = await supabase
             .from("users")
@@ -168,13 +140,6 @@ export async function POST(request: NextRequest) {
             user: {
                 id: userId,
                 fid,
-                profile: {
-                    username: profileFields.username,
-                    displayName: profileFields.display_name,
-                    avatarUrl: profileFields.avatar_url,
-                    ensName: profileFields.ens_name ?? null,
-                    walletAddress: profileFields.wallet_address ?? null,
-                },
             },
             session: {
                 access_token,

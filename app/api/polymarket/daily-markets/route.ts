@@ -8,9 +8,10 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
     const dateParam = searchParams.get('date')
+    const seedParam = searchParams.get('seed') || undefined
     const targetDate = dateParam ? new Date(dateParam) : undefined
 
-    const markets = await fetchDailyMarkets(targetDate)
+    const markets = await fetchDailyMarkets(targetDate, seedParam)
 
     return NextResponse.json(markets, {
       status: 200,

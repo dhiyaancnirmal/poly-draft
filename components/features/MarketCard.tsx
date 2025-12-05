@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/Badge";
 import { SkeletonText } from "@/components/ui/Skeleton";
 import { Button } from "@/components/ui/Button";
 import { ExtendedMarketCardProps } from "@/lib/types/polymarket";
-import { formatVolume, formatEndTime } from "@/lib/api/polymarket";
+import { formatVolume, formatEndTime, formatLocalEndDate } from "@/lib/api/polymarket";
 
 interface MarketCardProps extends ExtendedMarketCardProps {
   loading?: boolean;
@@ -36,6 +36,8 @@ export function MarketCard({ market, loading, onSelect, selectedSide, selectedMa
   const outcomePrices = market.outcomePrices || [];
   const yesPrice = livePrice?.yesPrice ?? outcomePrices[0] ?? 0.5;
   const noPrice = livePrice?.noPrice ?? outcomePrices[1] ?? 0.5;
+
+  const endDateValue = market.endTime;
   
   const priceChange = livePrice?.priceChange ?? 0;
   const priceChangeLabel = priceChange !== 0 ? `${priceChange > 0 ? '+' : ''}${(priceChange * 100).toFixed(1)}%` : '—';
@@ -95,7 +97,7 @@ export function MarketCard({ market, loading, onSelect, selectedSide, selectedMa
           {/* Market Info */}
           <div className="flex justify-between text-xs font-medium text-muted border-t border-surface-highlight/50 pt-3">
             <span>Vol: {formatVolume(market.volume24hr || market.volume)}</span>
-            <span>Ends: {formatEndTime(market.endTime)}</span>
+            <span>Ends: {formatEndTime(endDateValue)} ({formatLocalEndDate(endDateValue)})</span>
           </div>
         </div>
       </CardContent>

@@ -20,7 +20,8 @@ export default function DraftRoomPage() {
   const { picks, members, currentTurn, isConnected, makePick } = useDraftSync(leagueId);
 
   // Market data (from server proxy)
-  const { data: marketSelections, isLoading, error } = useDailyMarkets();
+  const [shuffleSeed, setShuffleSeed] = useState(0);
+  const { data: marketSelections, isLoading, error, refetch, isFetching } = useDailyMarkets(undefined, shuffleSeed.toString());
   const { livePrices, status: liveStatus } = usePolymarketLivePrices(marketSelections);
 
   // Local selection state
@@ -221,34 +222,50 @@ export default function DraftRoomPage() {
             </div>
           ) : (
             <div className="space-y-3">
-              {availableMarkets.map((selection) => (
-                <div key={selection.event.id} className="space-y-2">
-                  <MarketCard
-                    market={{
-                      id: selection.market.id,
-                      question: selection.market.question,
-                      description: selection.event.description,
-                      outcomes: selection.market.outcomes.split(','),
-                      outcomePrices: selection.market.outcomePrices.split(',').map(Number),
-                      yesPrice: Number(selection.market.outcomePrices.split(',')[0]),
-                      noPrice: Number(selection.market.outcomePrices.split(',')[1]),
-                      volume: selection.market.volume,
-                      volume24hr: selection.event.volume24hr,
-                      endTime: selection.event.endDate,
-                      category: selection.category,
-                      slug: selection.market.slug,
-                      liquidity: selection.market.liquidity,
+          {availableMarkets.map((selection) => {
+            const prices = selection.market.outcomePrices
+              ? selection.market.outcomePrices.split(',').map(Number)
+              : [];
+            const yesFallback =
+              selection.market.bestBuyYesPrice ??
+              (!Number.isNaN(Number(selection.market.bestBid)) ? Number(selection.market.bestBid) : undefined) ??
+              (!Number.isNaN(Number(selection.market.lastTradePrice)) ? Number(selection.market.lastTradePrice) : undefined) ??
+              prices[0];
+            const yesPrice = typeof yesFallback === 'number' ? yesFallback : prices[0] ?? 0.5;
+            const noPrice =
+              selection.market.bestBuyNoPrice ??
+              prices[1] ??
+              (1 - yesPrice);
+
+            return (
+              <div key={selection.event.id} className="space-y-2">
+                <MarketCard
+                  market={{
+                    id: selection.market.id,
+                    question: selection.market.question,
+                    description: selection.event.description,
+                    outcomes: selection.market.outcomes.split(','),
+                    outcomePrices: [yesPrice, noPrice],
+                    yesPrice,
+                    noPrice,
+                    volume: selection.market.volume,
+                    volume24hr: selection.event.volume24hr,
+                    endTime: selection.event.endDate,
+                    category: selection.category,
+                    slug: selection.market.slug,
+                    liquidity: selection.market.liquidity,
                     active: selection.market.active,
                     clobTokenIds: selection.market.clobTokenIds?.split(',').map((token) => token.trim()),
-                    }}
-                    onSelect={selectMarket}
-                    selectedSide={selectedSide}
-                    selectedMarket={selectedMarket}
+                  }}
+                  onSelect={selectMarket}
+                  selectedSide={selectedSide}
+                  selectedMarket={selectedMarket}
                   livePrice={livePrices[selection.market.id]}
                   isLive={liveStatus === 'connected'}
-                  />
-                </div>
-              ))}
+                />
+              </div>
+            );
+          })}
             </div>
           )}
 
@@ -265,6 +282,19 @@ export default function DraftRoomPage() {
                 ? `Confirm: ${selectedSide} for selected market`
                 : "Select a market and side"
             }
+          </Button>
+
+          <Button
+            variant="outline"
+            size="lg"
+            className="w-full"
+            onClick={() => {
+              setShuffleSeed((s) => s + 1);
+              refetch();
+            }}
+            disabled={isFetching}
+          >
+            {isFetching ? 'Refreshing...' : 'Change markets'}
           </Button>
         </div>
       </div>

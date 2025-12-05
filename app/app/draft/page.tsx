@@ -15,8 +15,9 @@ export default function DraftPage() {
   // const { user } = useAuth();
   // const router = = useRouter();
 
-  // Use real market data
-  const { data: marketSelections, isLoading, error } = useDailyMarkets();
+  // Use real market data with shuffle support
+  const [shuffleSeed, setShuffleSeed] = useState(0);
+  const { data: marketSelections, isLoading, error, refetch, isFetching } = useDailyMarkets(undefined, shuffleSeed.toString());
   const {
     selectedMarket,
     selectedSide,
@@ -219,34 +220,50 @@ export default function DraftPage() {
         {/* Markets & action (no extra section header) */}
         <div className="space-y-3">
           <div className="space-y-3">
-            {marketSelections.map((selection) => (
-              <MarketCard
-                key={selection.event.id}
-                className="min-h-[240px]"
-                market={{
-                  id: selection.market.id,
-                  question: selection.market.question,
-                  description: selection.event.description,
-                  outcomes: selection.market.outcomes.split(','),
-                  outcomePrices: selection.market.outcomePrices.split(',').map(Number),
-                  yesPrice: Number(selection.market.outcomePrices.split(',')[0]),
-                  noPrice: Number(selection.market.outcomePrices.split(',')[1]),
-                  volume: selection.market.volume,
-                  volume24hr: selection.event.volume24hr,
-                  endTime: selection.event.endDate,
-                  category: selection.category,
-                  slug: selection.market.slug,
-                  liquidity: selection.market.liquidity,
-                  active: selection.market.active,
-                  clobTokenIds: selection.market.clobTokenIds?.split(',').map((token) => token.trim()),
-                }}
-                onSelect={selectMarket}
-                selectedSide={selectedSide}
-                selectedMarket={selectedMarket}
-                livePrice={livePrices[selection.market.id]}
-                isLive={liveStatus === 'connected'}
-              />
-            ))}
+            {marketSelections.map((selection) => {
+              const prices = selection.market.outcomePrices
+                ? selection.market.outcomePrices.split(',').map(Number)
+                : [];
+              const yesFallback =
+                selection.market.bestBuyYesPrice ??
+                (!Number.isNaN(Number(selection.market.bestBid)) ? Number(selection.market.bestBid) : undefined) ??
+                (!Number.isNaN(Number(selection.market.lastTradePrice)) ? Number(selection.market.lastTradePrice) : undefined) ??
+                prices[0];
+              const yesPrice = typeof yesFallback === 'number' ? yesFallback : prices[0] ?? 0.5;
+              const noPrice =
+                selection.market.bestBuyNoPrice ??
+                prices[1] ??
+                (1 - yesPrice);
+
+              return (
+                <MarketCard
+                  key={selection.event.id}
+                  className="min-h-[240px]"
+                  market={{
+                    id: selection.market.id,
+                    question: selection.market.question,
+                    description: selection.event.description,
+                    outcomes: selection.market.outcomes.split(','),
+                    outcomePrices: [yesPrice, noPrice],
+                    yesPrice,
+                    noPrice,
+                    volume: selection.market.volume,
+                    volume24hr: selection.event.volume24hr,
+                    endTime: selection.event.endDate,
+                    category: selection.category,
+                    slug: selection.market.slug,
+                    liquidity: selection.market.liquidity,
+                    active: selection.market.active,
+                    clobTokenIds: selection.market.clobTokenIds?.split(',').map((token) => token.trim()),
+                  }}
+                  onSelect={selectMarket}
+                  selectedSide={selectedSide}
+                  selectedMarket={selectedMarket}
+                  livePrice={livePrices[selection.market.id]}
+                  isLive={liveStatus === 'connected'}
+                />
+              );
+            })}
           </div>
 
           <Button
@@ -259,6 +276,19 @@ export default function DraftPage() {
               ? `Confirm: ${selectedSide} for selected market`
               : "Select a market and side"
             }
+          </Button>
+
+          <Button
+            variant="outline"
+            size="lg"
+            className="w-full"
+            onClick={() => {
+              setShuffleSeed((s) => s + 1);
+              refetch();
+            }}
+            disabled={isFetching}
+          >
+            {isFetching ? 'Refreshing...' : 'Change markets'}
           </Button>
         </div>
       </div>

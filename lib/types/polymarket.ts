@@ -164,6 +164,8 @@ export interface PolymarketMarket {
   lastTradePrice?: number;
   bestBid?: number;
   bestAsk?: number;
+  bestBuyYesPrice?: number;
+  bestBuyNoPrice?: number;
   automaticallyActive?: boolean;
   clearBookOnStart?: boolean;
   chartColor?: string;

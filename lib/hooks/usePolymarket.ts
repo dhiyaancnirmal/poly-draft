@@ -7,6 +7,8 @@ import { MarketLivePrice } from '@/lib/types/polymarket';
 export const QUERY_KEYS = {
   dailyMarkets: ['daily-markets'],
   polymarket: ['polymarket'],
+  trendingDaily: ['trending-daily'],
+  trendingWeekly: ['trending-weekly'],
 } as const;
 
 // Hook for fetching daily markets with category diversity
@@ -26,6 +28,46 @@ export function useDailyMarkets(targetDate?: Date, seed?: string, options?: Part
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
     refetchInterval: 1000 * 60 * 10, // Refresh every 10 minutes
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    ...options,
+  });
+}
+
+// Trending markets - daily (by 24h volume)
+export function useTrendingMarketsDaily(seed?: string, options?: Partial<UseQueryOptions<MarketSelection[], Error>>) {
+  return useQuery({
+    queryKey: [...QUERY_KEYS.trendingDaily, seed],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (seed) params.set('seed', seed);
+      const url = `/api/polymarket/trending/daily${params.toString() ? `?${params.toString()}` : ''}`;
+      const response = await fetch(url);
+      if (!response.ok) throw new Error('Failed to fetch trending markets (daily)');
+      return response.json();
+    },
+    staleTime: 1000 * 60 * 5,
+    refetchInterval: 1000 * 60 * 10,
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    ...options,
+  });
+}
+
+// Trending markets - weekly (by 1-week volume)
+export function useTrendingMarketsWeekly(seed?: string, options?: Partial<UseQueryOptions<MarketSelection[], Error>>) {
+  return useQuery({
+    queryKey: [...QUERY_KEYS.trendingWeekly, seed],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (seed) params.set('seed', seed);
+      const url = `/api/polymarket/trending/weekly${params.toString() ? `?${params.toString()}` : ''}`;
+      const response = await fetch(url);
+      if (!response.ok) throw new Error('Failed to fetch trending markets (weekly)');
+      return response.json();
+    },
+    staleTime: 1000 * 60 * 10,
+    refetchInterval: 1000 * 60 * 15,
     retry: 3,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
     ...options,

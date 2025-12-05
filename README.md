@@ -1,159 +1,85 @@
-# Waitlist Mini App Quickstart
+# PolyDraft
 
-This is a demo Mini App application built using OnchainKit and the Farcaster SDK. Build a waitlist sign-up mini app for your company that can be published to the Base app and Farcaster. 
+PolyDraft is a social fantasy app for prediction markets. Leagues are built on real Polymarket yes/no markets; commissioners set rules and budgets, share a join code, and friends draft markets like players. The default mode uses simulated trades; paid leagues in authorized markets (in progress) fund a user’s Polygon proxy/Safe via Base→Polygon USDC bridging for real Polymarket execution.
 
-> [!IMPORTANT]  
-> Before interacting with this demo, please review our [disclaimer](#disclaimer) — there are **no official tokens or apps** associated with Cubey, Base, or Coinbase.
+## Kits and key dependencies
 
-## Prerequisites
+- **MiniKit**: App manifest/config for Base mini app distribution (`minikit.config.ts`).
+- **OnchainKit**: Frontend provider and hooks for Base/Farcaster mini app UX.
+- **BridgeKit**: Circle bridge client (Base↔Polygon) for USDC funding of paid leagues.
+- **Supabase**: Auth, database, and realtime draft sync.
+- **Polymarket Gamma APIs**: Market discovery and live prices via edge routes.
 
-Before getting started, make sure you have:
+## Built on Base
 
-* Base app account
-* A [Farcaster](https://farcaster.xyz/) account
-* [Vercel](https://vercel.com/) account for hosting the application
-* [Coinbase Developer Platform](https://portal.cdp.coinbase.com/) Client API Key
+- Deploys to and targets **Base** (testnet: Base Sepolia; mainnet-ready).
+- Mini app UX and distribution via Base SDK/**MiniKit/OnchainKit**; Farcaster-compatible.
+- Paid leagues leverage Base→Polygon bridging (USDC) to fund execution.
+- Smart wallets, paymasters, ERC-4337 account abstraction (Skeleton).
+- AgentKit or x402 (Skeleton).
+- Onchain data APIs (BaseScan, Dune, Reservoir, etc.) for analytics/telemetry (Skeleton for team feed).
 
-## Getting Started
+## What’s built today
 
-### 1. Clone this repository 
+- Mobile-first Next.js 16 (App Router) with Tailwind, SafeArea/PageTransition, BottomNav.
+- Base quick-auth onboarding; `/api/auth` + `/api/auth/session` set Supabase user/session.
+- League lifecycle: create, search/filter, join, start draft; server actions handle inserts + revalidation.
+- Drafts: single-player demo and realtime multi-user snake draft with Supabase sync (`useDraftSync`), no duplicate picks, enforced turn order.
+- Market data: Edge routes proxy Polymarket daily/weekly/trending feeds and live/batch prices with caching and CLOB enrichment; React Query drives UI.
+- Settings/profile: stats display (wins/leagues/points, wallet/FID), Farcaster links; profile page stub for future expansion.
+- Manifest: `minikit.config.ts` with icons/hero/splash, metadata aligned to PolyDraft.
+
+## Paid leagues & BridgeKit (in progress)
+
+- BridgeKit client configured for Base↔Polygon (testnet: Base Sepolia → Polygon Amoy).
+- API stubs: `/api/bridge/initiate`, `/api/bridge/status`, `/api/bridge/webhook` with rate limits, idempotency keys, and fallback destination support.
+- Planned Supabase tables: `user_proxies` (Polygon proxy/Safe per user) and `bridge_transfers` (USDC bridge state, tx hashes, errors). Webhook verification + optional polling to be added.
+- Proxy strategy: prefer user’s Polymarket proxy; custody fallback possible; to be finalized.
+
+## Tech stack
+
+- **Frontend**: Next.js 16 App Router, TypeScript, Tailwind, React Query, OnchainKit, MiniKit manifest.
+- **Backend/Edge**: Next.js route handlers and server actions, Supabase client, Polymarket proxy routes.
+- **Auth**: Farcaster via Supabase session.
+- **Data**: Supabase (leagues, drafts, picks, users), realtime draft sync.
+- **Bridging (WIP)**: BridgeKit + viem adapters, Base/Polygon RPCs from env, USDC addresses per env.
+- **Tooling**: ESLint/TypeScript, Vercel-friendly deployment.
+
+## Running locally
 
 ```bash
-git clone https://github.com/base/demos.git
-```
-
-### 2. Install dependencies:
-
-```bash
-cd demos/minikit/waitlist-mini-app-qs
 npm install
-```
-
-### 3. Configure environment variables
-
-Create a `.env.local` file and add your environment variables:
-
-```bash
-NEXT_PUBLIC_PROJECT_NAME="Your App Name"
-NEXT_PUBLIC_ONCHAINKIT_API_KEY=<Replace-WITH-YOUR-CDP-API-KEY>
-NEXT_PUBLIC_URL=
-```
-
-### 4. Run locally:
-
-```bash
 npm run dev
 ```
 
-## Customization
+Create `.env.local` with at least:
 
-### Update Manifest Configuration
-
-The `minikit.config.ts` file configures your manifest located at `app/.well-known/farcaster.json`.
-
-**Skip the `accountAssociation` object for now.**
-
-To personalize your app, change the `name`, `subtitle`, and `description` fields and add images to your `/public` folder. Then update their URLs in the file.
-
-## Deployment
-
-### 1. Deploy to Vercel
-
-```bash
-vercel --prod
+```
+NEXT_PUBLIC_URL=http://localhost:3000
+SUPABASE_URL=...
+SUPABASE_ANON_KEY=...
+NEYNAR_API_KEY=...
 ```
 
-You should have a URL deployed to a domain similar to: `https://your-vercel-project-name.vercel.app/`
+Paid-league/bridge envs (as needed):
 
-### 2. Update environment variables
-
-Add your production URL to your local `.env` file:
-
-```bash
-NEXT_PUBLIC_PROJECT_NAME="Your App Name"
-NEXT_PUBLIC_ONCHAINKIT_API_KEY=<Replace-WITH-YOUR-CDP-API-KEY>
-NEXT_PUBLIC_URL=https://your-vercel-project-name.vercel.app/
+```
+BRIDGEKIT_API_KEY=...
+BRIDGEKIT_APP_ID=...
+BRIDGEKIT_ENV=testnet|mainnet
+BRIDGEKIT_BASE_PRIVATE_KEY=0x...
+BASE_RPC_URL=...
+POLYGON_RPC_URL=...
+USDC_BASE_ADDRESS=...
+USDC_POLYGON_ADDRESS=...
+WEBHOOK_SECRET=...
+BRIDGE_CALLBACK_URL=...
+BRIDGEKIT_POLYGON_DESTINATION=... # optional fallback
 ```
 
-### 3. Upload environment variables to Vercel
+## Development status and next steps
 
-Add environment variables to your production environment:
-
-```bash
-vercel env add NEXT_PUBLIC_PROJECT_NAME production
-vercel env add NEXT_PUBLIC_ONCHAINKIT_API_KEY production
-vercel env add NEXT_PUBLIC_URL production
-```
-
-## Account Association
-
-### 1. Sign Your Manifest
-
-1. Navigate to [Farcaster Manifest tool](https://farcaster.xyz/~/developers/mini-apps/manifest)
-2. Paste your domain in the form field (ex: your-vercel-project-name.vercel.app)
-3. Click the `Generate account association` button and follow the on-screen instructions for signing with your Farcaster wallet
-4. Copy the `accountAssociation` object
-
-### 2. Update Configuration
-
-Update your `minikit.config.ts` file to include the `accountAssociation` object:
-
-```ts
-export const minikitConfig = {
-    accountAssociation: {
-        "header": "your-header-here",
-        "payload": "your-payload-here",
-        "signature": "your-signature-here"
-    },
-    frame: {
-        // ... rest of your frame configuration
-    },
-}
-```
-
-### 3. Deploy Updates
-
-```bash
-vercel --prod
-```
-
-## Testing and Publishing
-
-### 1. Preview Your App
-
-Go to [base.dev/preview](https://base.dev/preview) to validate your app:
-
-1. Add your app URL to view the embeds and click the launch button to verify the app launches as expected
-2. Use the "Account association" tab to verify the association credentials were created correctly
-3. Use the "Metadata" tab to see the metadata added from the manifest and identify any missing fields
-
-### 2. Publish to Base App
-
-To publish your app, create a post in the Base app with your app's URL.
-
-## Learn More
-
-For detailed step-by-step instructions, see the [Create a Mini App tutorial](https://docs.base.org/docs/mini-apps/quickstart/create-new-miniapp/) in the Base documentation.
-
-
----
-
-## Disclaimer  
-
-This project is a **demo application** created by the **Base / Coinbase Developer Relations team** for **educational and demonstration purposes only**.  
-
-**There is no token, cryptocurrency, or investment product associated with Cubey, Base, or Coinbase.**  
-
-Any social media pages, tokens, or applications claiming to be affiliated with, endorsed by, or officially connected to Cubey, Base, or Coinbase are **unauthorized and fraudulent**.  
-
-We do **not** endorse or support any third-party tokens, apps, or projects using the Cubey name or branding.  
-
-> [!WARNING]
-> Do **not** purchase, trade, or interact with any tokens or applications claiming affiliation with Coinbase, Base, or Cubey.  
-> Coinbase and Base will never issue a token or ask you to connect your wallet for this demo.  
-
-For official Base developer resources, please visit:  
-- [https://base.org](https://base.org)  
-- [https://docs.base.org](https://docs.base.org)  
-
----
+- Finish Supabase migrations (`user_proxies`, `bridge_transfers`) and wire API routes to DB instead of in-memory store.
+- Add webhook signature verification, status polling, and proxy creation/fallback helpers.
+- Gate paid league joins on “ready” (proxy exists + minted funds or sufficient balance).
+- Flesh out profile/leaderboard/scoring/resolution; add tests/monitoring; productionize docs.

@@ -99,7 +99,7 @@ export default function Splash() {
   };
 
   return (
-    <div className="relative min-h-screen bg-background p-6 overflow-hidden">
+    <div className="relative h-screen bg-background p-6 overflow-hidden">
       {/* Probability rain background constrained to mobile width */}
       <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden flex justify-center">
         <div className="relative max-w-mobile w-full h-full">
@@ -129,26 +129,26 @@ export default function Splash() {
         </div>
       </div>
 
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+      <div className="absolute inset-x-0 top-[35%] -translate-y-1/2 transform flex items-center justify-center pointer-events-none z-10">
         <div className="max-w-mobile w-full pointer-events-auto">
           <div className="flex items-center justify-center gap-3">
             <Image
               src={resolvedTheme === "light" ? "/polydraft-dark.svg" : "/polydraft.svg"}
               alt="PolyDraft logo"
-              width={41}
-              height={41}
-              className="h-[41px] w-auto"
+              width={52}
+              height={52}
+              className="h-[52px] w-auto"
               priority
             />
-            <h1 className="text-4xl font-bold text-text tracking-tight">
+            <h1 className="text-5xl font-bold text-text tracking-tight">
               PolyDraft
             </h1>
           </div>
         </div>
       </div>
 
-      <div className="absolute inset-x-0 top-[75%] flex justify-center px-6 z-10">
-        <div className="max-w-mobile w-full space-y-4 text-center">
+      <div className="absolute inset-x-0 top-[65%] flex justify-center px-6 z-10">
+        <div className="max-w-mobile w-full text-center space-y-4">
           <Button
             onClick={handleSignIn}
             loading={isLoading}
@@ -181,9 +181,11 @@ export default function Splash() {
             </div>
           )}
 
-          <p className="text-xs text-muted">
-            By signing in, you agree to our Terms of Service and Privacy Policy
-          </p>
+          <div className="pt-14">
+            <p className="text-xs text-muted">
+              By signing in, you agree to our Terms of Service and Privacy Policy
+            </p>
+          </div>
         </div>
       </div>
 

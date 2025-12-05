@@ -101,6 +101,7 @@ export default async function LeagueDashboardPage({ params }: Props) {
                 <p className="text-xs text-muted">
                   {typed.type === "daily" ? "Daily" : "Weekly"} • {typed.duration_periods} periods • {typed.picks_per_period} picks/period
                 </p>
+                <p className="text-[11px] text-muted font-mono">League ID: {typed.id}</p>
               </div>
                 <div className="flex gap-2">
                   <Link

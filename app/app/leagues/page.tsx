@@ -248,26 +248,33 @@ export default function LeaguesPage() {
                   }
                 }}
               >
-                <LeagueCard
-                  league={{
-                    id: league.id,
-                    name: league.name,
-                    members: league.members,
-                    maxMembers: league.maxMembers || 12,
-                    prizePool: "Invite-only",
-                    status: "active",
-                    entryFee: "Free",
-                  }}
-                  action={
-                    league.isMock ? (
-                      <Badge variant="outline">Mock preview</Badge>
-                    ) : (
-                      <Button size="sm" variant="primary" onClick={() => router.push(`/app/leagues/${league.id}`)}>
-                        Open League
-                      </Button>
-                    )
-                  }
-                />
+                <div className="space-y-1">
+                  <LeagueCard
+                    league={{
+                      id: league.id,
+                      name: league.name,
+                      members: league.members,
+                      maxMembers: league.maxMembers || 12,
+                      prizePool: "Invite-only",
+                      status: "active",
+                      entryFee: "Free",
+                    }}
+                    action={
+                      league.isMock ? (
+                        <Badge variant="outline">Mock preview</Badge>
+                      ) : (
+                        <Button size="sm" variant="primary" onClick={() => router.push(`/app/leagues/${league.id}`)}>
+                          Open League
+                        </Button>
+                      )
+                    }
+                  />
+                  {!league.isMock && (
+                    <p className="text-[11px] text-muted">
+                      League ID: <span className="font-mono text-foreground">{league.id}</span>
+                    </p>
+                  )}
+                </div>
               </div>
             ))}
           </div>

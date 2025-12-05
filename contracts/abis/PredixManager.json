@@ -1,0 +1,22 @@
+{
+  "abi": [
+    {
+      "inputs": [
+        { "internalType": "address", "name": "owner_", "type": "address" },
+        { "internalType": "address", "name": "predix_", "type": "address" }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    },
+    { "anonymous": false, "inputs": [{ "indexed": true, "internalType": "address", "name": "user", "type": "address" }, { "indexed": true, "internalType": "bytes32", "name": "leagueId", "type": "bytes32" }, { "indexed": true, "internalType": "bytes32", "name": "marketId", "type": "bytes32" }, { "indexed": true, "internalType": "bytes32", "name": "outcomeId", "type": "bytes32" }], "name": "PickLogged", "type": "event" },
+    { "anonymous": false, "inputs": [{ "indexed": true, "internalType": "address", "name": "user", "type": "address" }, { "indexed": true, "internalType": "bytes32", "name": "leagueId", "type": "bytes32" }, { "indexed": true, "internalType": "bytes32", "name": "marketId", "type": "bytes32" }, { "indexed": true, "internalType": "bytes32", "name": "outcomeId", "type": "bytes32" }], "name": "SwapLogged", "type": "event" },
+    { "inputs": [], "name": "owner", "outputs": [{ "internalType": "address", "name": "", "type": "address" }], "stateMutability": "view", "type": "function" },
+    { "inputs": [], "name": "predix", "outputs": [{ "internalType": "address", "name": "", "type": "address" }], "stateMutability": "view", "type": "function" },
+    { "inputs": [{ "internalType": "address", "name": "to", "type": "address" }, { "internalType": "uint256", "name": "amount", "type": "uint256" }], "name": "mint", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
+    { "inputs": [{ "internalType": "address", "name": "from", "type": "address" }, { "internalType": "uint256", "name": "amount", "type": "uint256" }], "name": "burn", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
+    { "inputs": [{ "internalType": "address", "name": "user", "type": "address" }, { "internalType": "bytes32", "name": "leagueId", "type": "bytes32" }, { "internalType": "bytes32", "name": "marketId", "type": "bytes32" }, { "internalType": "bytes32", "name": "outcomeId", "type": "bytes32" }], "name": "logPick", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
+    { "inputs": [{ "internalType": "address", "name": "user", "type": "address" }, { "internalType": "bytes32", "name": "leagueId", "type": "bytes32" }, { "internalType": "bytes32", "name": "marketId", "type": "bytes32" }, { "internalType": "bytes32", "name": "outcomeId", "type": "bytes32" }], "name": "logSwap", "outputs": [], "stateMutability": "nonpayable", "type": "function" }
+  ]
+}
+
+

@@ -7,8 +7,6 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader } from "@/components/ui/Card";
 import {
-  ArrowDownCircle,
-  ArrowUpCircle,
   Copy,
   ExternalLink,
   FileText,
@@ -16,7 +14,10 @@ import {
   ShieldCheck,
   Wallet,
   X,
+  AlertCircle,
+  Activity,
 } from "lucide-react";
+import { usePredixTransparency } from "@/lib/hooks/usePredix";
 
 type TxType = "entry" | "prize" | "transfer";
 
@@ -150,6 +151,11 @@ function amountColor(amount: number) {
 export default function WalletPage() {
   const [filter, setFilter] = useState<"all" | TxType>("all");
   const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
+  const {
+    data: predix,
+    isLoading: predixLoading,
+    error: predixError,
+  } = usePredixTransparency();
 
   const groupedTransactions = useMemo(() => {
     const filtered = filter === "all" ? transactions : transactions.filter((tx) => tx.type === filter);
@@ -216,6 +222,168 @@ export default function WalletPage() {
             </CardContent>
           </Card>
         </div>
+
+        <Card>
+          <CardHeader className="flex items-center justify-between">
+            <div>
+              <p className="text-base font-semibold text-foreground">Predix (Base)</p>
+              <p className="text-xs text-muted">On-chain balance, settlements, transparency</p>
+            </div>
+            <Badge variant="outline">Transparency</Badge>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {predixError ? (
+              <div className="flex items-center gap-2 text-sm text-destructive">
+                <AlertCircle className="h-4 w-4" />
+                <span>{predixError.message}</span>
+              </div>
+            ) : null}
+
+            <div className="grid gap-3 sm:grid-cols-3">
+              <div className="rounded-lg border border-border/60 bg-surface/80 p-3 space-y-1">
+                <p className="text-xs uppercase font-semibold text-muted">Balance</p>
+                {predixLoading ? (
+                  <div className="h-6 w-24 rounded bg-surface-highlight animate-pulse" />
+                ) : (
+                  <p className="text-xl font-bold text-foreground">
+                    {predix?.onchain?.balance?.formatted ?? "—"}
+                  </p>
+                )}
+                {predix?.chain?.tokenAddress && predix?.chain?.explorerBaseUrl ? (
+                  <Link
+                    className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                    href={`${predix.chain.explorerBaseUrl}/token/${predix.chain.tokenAddress}`}
+                    target="_blank"
+                  >
+                    <ExternalLink className="h-3 w-3" />
+                    Token on BaseScan
+                  </Link>
+                ) : null}
+              </div>
+
+              <div className="rounded-lg border border-border/60 bg-surface/80 p-3 space-y-2">
+                <p className="text-xs uppercase font-semibold text-muted">Settlement status</p>
+                {predixLoading ? (
+                  <div className="h-10 rounded bg-surface-highlight animate-pulse" />
+                ) : predix?.settlements && predix.settlements.length > 0 ? (
+                  <div className="space-y-1">
+                    {predix.settlements.slice(0, 3).map((s: any) => (
+                      <div key={s.league_id} className="flex items-center justify-between text-sm">
+                        <span className="text-muted">{s.league_id.slice(0, 6)}…</span>
+                        <Badge
+                          variant={
+                            s.settlement_status === "confirmed"
+                              ? "success"
+                              : s.settlement_status === "failed"
+                                ? "error"
+                                : "default"
+                          }
+                        >
+                          {s.settlement_status}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted">No settlements yet</p>
+                )}
+              </div>
+
+              <div className="rounded-lg border border-border/60 bg-surface/80 p-3 space-y-2">
+                <p className="text-xs uppercase font-semibold text-muted">Links</p>
+                <div className="space-y-1 text-sm">
+                  {predix?.chain?.managerAddress && predix?.chain?.explorerBaseUrl ? (
+                    <Link
+                      className="inline-flex items-center gap-1 text-primary hover:underline"
+                      href={`${predix.chain.explorerBaseUrl}/address/${predix.chain.managerAddress}`}
+                      target="_blank"
+                    >
+                      <ExternalLink className="h-3 w-3" />
+                      Predix Manager
+                    </Link>
+                  ) : (
+                    <p className="text-muted text-sm">Manager address pending</p>
+                  )}
+                  {predix?.combined?.find((e: any) => e.txHash && predix.chain?.explorerBaseUrl) ? (
+                    <Link
+                      className="inline-flex items-center gap-1 text-primary hover:underline"
+                      href={`${predix?.chain?.explorerBaseUrl}/tx/${predix?.combined?.find(
+                        (e: any) => e.txHash
+                      )?.txHash}`}
+                      target="_blank"
+                    >
+                      <ExternalLink className="h-3 w-3" />
+                      Latest tx
+                    </Link>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Activity className="h-4 w-4 text-primary" />
+                <p className="text-sm font-semibold text-foreground">Recent Predix events</p>
+              </div>
+              {predixLoading ? (
+                <div className="space-y-2">
+                  <div className="h-10 rounded bg-surface-highlight animate-pulse" />
+                  <div className="h-10 rounded bg-surface-highlight animate-pulse" />
+                </div>
+              ) : predix?.combined && predix.combined.length > 0 ? (
+                <div className="space-y-2">
+                  {predix.combined.slice(0, 6).map((event: any, idx: number) => {
+                    const explorer = predix?.chain?.explorerBaseUrl
+                    const txLink = explorer && event.txHash ? `${explorer}/tx/${event.txHash}` : null
+                    const status =
+                      event.txStatus ||
+                      (event.txHash ? 'confirmed' : event.blockNumber ? 'confirmed' : 'pending')
+                    const statusVariant =
+                      status === 'confirmed'
+                        ? 'success'
+                        : status === 'failed'
+                          ? 'error'
+                          : 'default'
+                    return (
+                      <div
+                        key={event.id || event.txHash || idx}
+                        className="flex items-center justify-between rounded-lg border border-border/60 bg-surface/70 px-3 py-2 text-sm"
+                      >
+                        <div className="space-y-0.5">
+                          <div className="flex items-center gap-2">
+                            <Badge variant={event.source === 'onchain' ? "outline" : "info"}>
+                              {event.source}
+                            </Badge>
+                            <span className="font-semibold capitalize text-foreground">
+                              {event.action}
+                            </span>
+                          </div>
+                          <div className="text-xs text-muted">
+                            {event.outcomeSide || event.outcome_hash ? event.outcomeSide : '—'} •{" "}
+                            {event.leagueId || event.leagueHash ? (event.leagueId || event.leagueHash).toString().slice(0, 8) : 'league'}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant={statusVariant}>{status}</Badge>
+                          {txLink ? (
+                            <Link href={txLink} target="_blank" className="text-primary hover:underline">
+                              <ExternalLink className="h-4 w-4" />
+                            </Link>
+                          ) : null}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              ) : (
+                <p className="text-sm text-muted">No Predix events yet.</p>
+              )}
+              {predix?.onchain?.error ? (
+                <p className="text-xs text-warning">On-chain fetch warning: {predix.onchain.error}</p>
+              ) : null}
+            </div>
+          </CardContent>
+        </Card>
 
         <Card>
           <CardHeader className="flex items-center justify-between">

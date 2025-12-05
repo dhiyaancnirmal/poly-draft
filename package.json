@@ -7,9 +7,14 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test": "tsx --test tests/**/*.test.ts"
+    "test": "tsx --test tests/**/*.test.ts",
+    "onchain:build": "forge build -C contracts",
+    "onchain:test": "forge test -C contracts",
+    "onchain:deploy": "forge script contracts/script/DeployPredix.s.sol:DeployPredix --rpc-url $BASE_SEPOLIA_RPC_URL --broadcast"
   },
   "dependencies": {
+    "@circle-fin/adapter-viem-v2": "^1.1.1",
+    "@circle-fin/bridge-kit": "^1.1.2",
     "@coinbase/onchainkit": "latest",
     "@farcaster/auth-kit": "^0.8.1",
     "@farcaster/miniapp-sdk": "^0.2.1",

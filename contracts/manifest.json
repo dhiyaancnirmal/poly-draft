@@ -1,0 +1,23 @@
+{
+  "networks": {
+    "base_sepolia": {
+      "chainId": 84532,
+      "rpcEnv": "BASE_SEPOLIA_RPC_URL",
+      "predix": "",
+      "predixManager": ""
+    },
+    "base_mainnet": {
+      "chainId": 8453,
+      "rpcEnv": "BASE_MAINNET_RPC_URL",
+      "predix": "",
+      "predixManager": ""
+    }
+  },
+  "artifacts": {
+    "Predix": "./abis/Predix.json",
+    "PredixManager": "./abis/PredixManager.json"
+  },
+  "lastUpdated": ""
+}
+
+

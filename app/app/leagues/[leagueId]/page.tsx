@@ -1,4 +1,3 @@
-import { notFound } from "next/navigation";
 import Link from "next/link";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Badge } from "@/components/ui/Badge";
@@ -45,7 +44,30 @@ export default async function LeagueDashboardPage({ params }: Props) {
     .eq("id", params.leagueId)
     .single();
 
-  if (error || !league) return notFound();
+  if (error || !league) {
+    return (
+      <AppLayout title="League">
+        <div className="p-4">
+          <Card className="border border-border/60 bg-surface/70">
+            <CardContent className="space-y-3 py-6">
+              <p className="text-lg font-semibold text-foreground">Unable to load league</p>
+              <p className="text-sm text-muted">
+                {error?.message || "This league could not be found or you may not have access."}
+              </p>
+              <div className="flex gap-2">
+                <Link
+                  href="/app/leagues"
+                  className="inline-flex items-center rounded-lg border border-border/80 px-3 py-1.5 text-sm font-semibold text-foreground hover:border-primary hover:text-primary transition-colors"
+                >
+                  Back to Leagues
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </AppLayout>
+    );
+  }
 
   type Member = { team_name: string | null; user_id: string; joined_at: string | null };
   type LeagueWithMembers = Database["public"]["Tables"]["leagues"]["Row"] & { league_members: Member[] };

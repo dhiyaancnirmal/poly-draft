@@ -208,8 +208,8 @@ export default function LeaguesPage() {
         )}
 
         {showCreateSheet && (
-          <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm px-4 pb-4">
-            <div className="w-full max-w-3xl transform rounded-t-2xl bg-surface/95 shadow-[0_28px_60px_-24px_rgba(0,0,0,0.5)] transition-transform animate-[slide-up_240ms_ease-out]">
+          <div className="fixed inset-0 z-50 flex items-end justify-center px-4 pb-4 pointer-events-none">
+            <div className="pointer-events-auto w-full max-w-3xl transform rounded-t-2xl bg-surface/95 shadow-[0_28px_60px_-24px_rgba(0,0,0,0.5)] transition-transform animate-[slide-up_240ms_ease-out]">
               <div className="flex items-center justify-between border-b border-border/40 px-4 py-3">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-wide text-primary">Quick create</p>
@@ -245,7 +245,7 @@ export default function LeaguesPage() {
                 className="cursor-pointer"
                 onClick={() => {
                   if (!league.isMock) {
-                    router.push(`/app/draft/${league.id}`);
+                    router.push(`/app/leagues/${league.id}`);
                   }
                 }}
               >
@@ -263,7 +263,7 @@ export default function LeaguesPage() {
                     league.isMock ? (
                       <Badge variant="outline">Mock preview</Badge>
                     ) : (
-                      <Button size="sm" variant="primary">
+                      <Button size="sm" variant="primary" onClick={() => router.push(`/app/leagues/${league.id}`)}>
                         Open League
                       </Button>
                     )

@@ -156,6 +156,7 @@ export interface Database {
           id: string
           league_id: string
           user_id: string
+          team_name: string | null
           wallet_address: string
           draft_order: number | null
           has_picked_current_round: boolean
@@ -166,6 +167,7 @@ export interface Database {
           id?: string
           league_id: string
           user_id: string
+          team_name?: string | null
           wallet_address: string
           draft_order?: number | null
           has_picked_current_round?: boolean
@@ -176,6 +178,7 @@ export interface Database {
           id?: string
           league_id?: string
           user_id?: string
+          team_name?: string | null
           wallet_address?: string
           draft_order?: number | null
           has_picked_current_round?: boolean

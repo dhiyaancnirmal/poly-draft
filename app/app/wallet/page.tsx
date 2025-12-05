@@ -148,6 +148,12 @@ function amountColor(amount: number) {
   return "text-foreground";
 }
 
+function shortHash(hash?: string | null, chars: number = 6) {
+  if (!hash) return "—";
+  if (hash.length <= chars * 2) return hash;
+  return `${hash.slice(0, chars)}…${hash.slice(-chars)}`;
+}
+
 export default function WalletPage() {
   const [filter, setFilter] = useState<"all" | TxType>("all");
   const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);

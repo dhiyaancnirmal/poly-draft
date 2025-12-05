@@ -2,6 +2,7 @@
 
 import { ReactNode } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useAuth, useMiniAppUser } from "@/lib/hooks";
 import { BottomNav } from "./BottomNav";
 
@@ -14,6 +15,7 @@ interface AppLayoutProps {
 export function AppLayout({ children, title, rightAction }: AppLayoutProps) {
   const { displayName, username, avatarUrl } = useAuth();
   const { user: miniUser } = useMiniAppUser();
+  const isHomeTitle = typeof title === "string" && title.toLowerCase() === "polydraft";
 
   const profileLabel =
     miniUser?.displayName ||
@@ -28,7 +30,12 @@ export function AppLayout({ children, title, rightAction }: AppLayoutProps) {
         <header className="sticky top-0 z-40 bg-[#130c0c] py-4 shadow-md/40">
           <div className="mx-4 px-1 flex items-center justify-between gap-3">
             {title ? (
-              <h1 className="text-2xl font-bold text-foreground leading-snug">{title}</h1>
+              <div className="flex items-center gap-2">
+                {isHomeTitle ? (
+                  <Image src="/polydraft.svg" alt="PolyDraft logo" width={32} height={32} priority />
+                ) : null}
+                <h1 className="text-2xl font-bold text-foreground leading-snug">{title}</h1>
+              </div>
             ) : null}
             {rightAction ? (
               <div className="flex-shrink-0">

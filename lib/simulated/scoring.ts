@@ -3,6 +3,8 @@ import { Database } from '@/lib/supabase/database-types'
 import { computePeriodIndex } from './periods'
 
 type TypedClient = SupabaseClient<Database>
+type ScoreInsert = Database['public']['Tables']['scores']['Insert']
+type SnapshotInsert = Database['public']['Tables']['score_snapshots']['Insert']
 
 type PickWithOutcome = {
   user_id: string
@@ -54,8 +56,9 @@ export async function computeAndStoreScores(supabase: TypedClient, leagueId: str
     .in('market_id', marketIds)
 
   if (resError) throw new Error(resError.message)
+  const resolutionRows = (resolutions || []) as MarketResolution[]
   const resMap = new Map<string, MarketResolution>()
-  for (const res of resolutions || []) {
+  for (const res of resolutionRows) {
     resMap.set(res.market_id, res)
   }
 
@@ -112,44 +115,49 @@ export async function computeAndStoreScores(supabase: TypedClient, leagueId: str
   const nowIso = now.toISOString()
   const periodIndex = computePeriodIndex((league as LeagueMeta).start_time, (league as LeagueMeta).cadence, now)
 
-  const scoreRows = Object.entries(perUser).map(([userId, agg]) => ({
-    league_id: leagueId,
-    user_id: userId,
-    wallet_address: agg.wallet,
-    points: Math.round(agg.totalValue * 100),
-    rank: null as number | null,
-    is_winner: false,
-    correct_picks: agg.correctPicks,
-    total_picks: agg.totalPicks,
-    updated_at: nowIso,
-  }))
+  const scoreRows: ScoreInsert[] = Object.entries(perUser).map(([userId, agg]) => {
+    const points = Math.round(agg.totalValue * 100)
+    return {
+      league_id: leagueId,
+      user_id: userId,
+      wallet_address: agg.wallet,
+      points,
+      rank: null,
+      is_winner: false,
+      correct_picks: agg.correctPicks,
+      total_picks: agg.totalPicks,
+      updated_at: nowIso,
+    }
+  })
 
   // Rank by points desc
-  scoreRows.sort((a, b) => b.points - a.points)
+  scoreRows.sort((a, b) => (b.points ?? 0) - (a.points ?? 0))
   scoreRows.forEach((row, idx) => {
     row.rank = idx + 1
     row.is_winner = idx === 0
   })
 
   if (scoreRows.length > 0) {
-    const { error: upsertError } = await supabase
-      .from('scores')
-      .upsert(scoreRows, { onConflict: 'league_id,user_id' })
+    const { error: upsertError } = await (supabase.from('scores') as any).upsert(scoreRows, {
+      onConflict: 'league_id,user_id',
+    })
     if (upsertError) throw new Error(upsertError.message)
   }
 
-  const snapshotRows = scoreRows.map((row) => {
+  const snapshotRows: SnapshotInsert[] = scoreRows.map((row) => {
     const agg = perUser[row.user_id]
     const portfolioValue = agg.totalValue * 100
+    const pnlString = agg.pnl.toFixed(4)
+    const portfolioValueString = portfolioValue.toFixed(4)
     return {
       league_id: leagueId,
       user_id: row.user_id,
       wallet_address: row.wallet_address,
       period_index: periodIndex,
       as_of: nowIso,
-      points: row.points,
-      pnl: Number(agg.pnl.toFixed(4)),
-      portfolio_value: Number(portfolioValue.toFixed(4)),
+      points: row.points ?? 0,
+      pnl: pnlString,
+      portfolio_value: portfolioValueString,
       rank: row.rank,
       correct_picks: row.correct_picks,
       total_picks: row.total_picks,
@@ -158,7 +166,7 @@ export async function computeAndStoreScores(supabase: TypedClient, leagueId: str
   })
 
   if (snapshotRows.length > 0) {
-    const { error: snapshotError } = await supabase.from('score_snapshots').upsert(snapshotRows, {
+    const { error: snapshotError } = await (supabase.from('score_snapshots') as any).upsert(snapshotRows, {
       onConflict: 'league_id,user_id,period_index',
     })
     if (snapshotError) throw new Error(snapshotError.message)

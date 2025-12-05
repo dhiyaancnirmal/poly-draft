@@ -2,6 +2,8 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
+import { Database } from '@/lib/supabase/database-types'
+import { recordJobMetric } from '@/lib/jobs/metrics'
 
 const GAMMA_API = 'https://gamma-api.polymarket.com'
 const CACHE_TTL_MS = 60_000
@@ -14,6 +16,11 @@ type GammaPrice = {
 }
 
 const priceCache = new Map<string, { data: GammaPrice; ts: number }>()
+
+// Exposed for tests to clear cache between runs
+export async function __resetPriceCache() {
+  priceCache.clear()
+}
 
 function clampPrice(p: number | undefined): number | null {
   if (p === undefined || Number.isNaN(p)) return null
@@ -85,7 +92,12 @@ async function fetchGammaPrice(marketId: string): Promise<GammaPrice | null> {
 }
 
 export async function POST(request: NextRequest) {
-  const supabase = await createServerClient()
+  const started = Date.now()
+  let success = false
+  let metricError: string | undefined
+  let metricStats: Record<string, any> | undefined
+  try {
+  const supabase = ((request as any).__supabase ?? (await createServerClient())) as any
   const { searchParams } = new URL(request.url)
   const leagueId = searchParams.get('leagueId')?.trim()
 
@@ -100,10 +112,13 @@ export async function POST(request: NextRequest) {
     : await leagueFilter
 
   if (leagueError) {
+    metricError = leagueError.message
     return NextResponse.json({ success: false, error: leagueError.message }, { status: 500 })
   }
   const leagueIds = (leagues || []).map((l: any) => l.id)
   if (leagueIds.length === 0) {
+    success = true
+    metricStats = { leagues: 0 }
     return NextResponse.json({ success: true, leagues: 0, message: 'No eligible leagues' })
   }
 
@@ -113,6 +128,7 @@ export async function POST(request: NextRequest) {
     .in('league_id', leagueIds)
 
   if (picksError) {
+    metricError = picksError.message
     return NextResponse.json({ success: false, error: picksError.message }, { status: 500 })
   }
 
@@ -125,6 +141,7 @@ export async function POST(request: NextRequest) {
     .in('id', marketIds)
 
   if (marketsError) {
+    metricError = marketsError.message
     return NextResponse.json({ success: false, error: marketsError.message }, { status: 500 })
   }
 
@@ -152,11 +169,13 @@ export async function POST(request: NextRequest) {
     .in('market_id', marketDbIds)
 
   if (outcomesError) {
+    metricError = outcomesError.message
     return NextResponse.json({ success: false, error: outcomesError.message }, { status: 500 })
   }
 
   const marketToPoly = new Map<string, string>()
-  for (const m of markets || []) {
+  const marketRows = (markets || []) as Array<{ id: string; polymarket_id: string | null }>
+  for (const m of marketRows) {
     if (m.id && m.polymarket_id) marketToPoly.set(m.id, m.polymarket_id)
   }
 
@@ -169,14 +188,13 @@ export async function POST(request: NextRequest) {
   }
 
   const nowIso = new Date().toISOString()
-  const outcomeUpdates: Array<{
-    id: string
-    current_price: string
-    token_id?: string | null
-    updated_at: string
-  }> = []
+  type OutcomeRow = Database['public']['Tables']['outcomes']['Row']
+  type OutcomeInsert = Database['public']['Tables']['outcomes']['Insert']
+  const outcomeUpdates: OutcomeInsert[] = []
 
-  for (const outcome of outcomes || []) {
+  const outcomeRows = (outcomes || []) as OutcomeRow[]
+
+  for (const outcome of outcomeRows) {
     const polyId = marketToPoly.get(outcome.market_id)
     if (!polyId) continue
 
@@ -185,6 +203,8 @@ export async function POST(request: NextRequest) {
       stats.missingPrices += 1
       outcomeUpdates.push({
         id: outcome.id,
+        market_id: outcome.market_id,
+        side: outcome.side,
         current_price: outcome.current_price || '0.5',
         token_id: outcome.token_id ?? null,
         updated_at: nowIso,
@@ -199,6 +219,8 @@ export async function POST(request: NextRequest) {
 
     outcomeUpdates.push({
       id: outcome.id,
+      market_id: outcome.market_id,
+      side: outcome.side,
       current_price: price.toFixed(4),
       token_id: outcome.side === 'YES' ? gammaPrice.yesTokenId ?? null : gammaPrice.noTokenId ?? null,
       updated_at: nowIso,
@@ -206,13 +228,26 @@ export async function POST(request: NextRequest) {
   }
 
   if (outcomeUpdates.length > 0) {
-    const { error: upsertError } = await supabase.from('outcomes').upsert(outcomeUpdates, { onConflict: 'id' })
+    const { error: upsertError } = await (supabase.from('outcomes') as any).upsert(outcomeUpdates, { onConflict: 'id' })
     if (upsertError) {
+      metricError = upsertError.message
       return NextResponse.json({ success: false, error: upsertError.message }, { status: 500 })
     }
     stats.updatedOutcomes = outcomeUpdates.length
   }
 
+  success = true
+  metricStats = stats
   return NextResponse.json({ success: true, stats })
+  } finally {
+    recordJobMetric({
+      name: 'refresh-prices',
+      success,
+      durationMs: Date.now() - started,
+      at: new Date().toISOString(),
+      error: metricError,
+      stats: metricStats,
+    })
+  }
 }
 

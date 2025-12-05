@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { useParams } from "next/navigation";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { MarketCard } from "@/components/features";
@@ -15,6 +16,9 @@ export default function DraftRoomPage() {
   const params = useParams();
   const leagueId = params.leagueId as string;
   const { user } = useAuth();
+  const [predixLoading, setPredixLoading] = useState(true);
+  const [predixError, setPredixError] = useState<string | null>(null);
+  const [predixData, setPredixData] = useState<any>(null);
 
   // Real-time draft sync (NEW)
   const { picks, members, currentTurn, isConnected, makePick } = useDraftSync(leagueId);
@@ -46,6 +50,32 @@ export default function DraftRoomPage() {
       startTimer();
     }
   }, [isLoading, marketSelections, startTimer, isMyTurn]);
+
+  useEffect(() => {
+    let mounted = true;
+    setPredixLoading(true);
+    setPredixError(null);
+    fetch(`/api/leagues/simulated/predix?leagueId=${leagueId}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (!mounted) return;
+        if (!data?.success) {
+          setPredixError(data?.error || "Unable to load Predix data");
+        } else {
+          setPredixData(data);
+        }
+      })
+      .catch((err) => {
+        if (!mounted) return;
+        setPredixError(err?.message || "Unable to load Predix data");
+      })
+      .finally(() => {
+        if (mounted) setPredixLoading(false);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, [leagueId]);
 
   const handleConfirmPick = async () => {
     if (!selectedMarket || !selectedSide || !isMyTurn) {
@@ -131,6 +161,101 @@ export default function DraftRoomPage() {
             <Badge variant="warning">Reconnecting...</Badge>
           </div>
         )}
+
+        {/* Predix balance + transparency */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-medium text-muted">Predix balance & transparency</h3>
+            {predixData?.onchain?.explorerBaseUrl && predixData?.onchain?.tokenAddress ? (
+              <Link
+                href={`${predixData.onchain.explorerBaseUrl}/token/${predixData.onchain.tokenAddress}`}
+                target="_blank"
+                className="text-xs text-primary hover:underline"
+              >
+                View token
+              </Link>
+            ) : null}
+          </div>
+          <div className="rounded-lg border border-border/70 bg-surface/80 p-3 space-y-2">
+            {predixLoading ? (
+              <SkeletonText lines={2} className="w-48" />
+            ) : predixError ? (
+              <p className="text-sm text-error">{predixError}</p>
+            ) : (
+              <>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-muted">Balance</p>
+                    <p className="text-lg font-semibold text-foreground">
+                      {predixData?.onchain?.balance ?? "—"} PREDIX
+                    </p>
+                  </div>
+                  {predixData?.onchain?.explorerBaseUrl && predixData?.onchain?.managerAddress ? (
+                    <Link
+                      href={`${predixData.onchain.explorerBaseUrl}/address/${predixData.onchain.managerAddress}`}
+                      target="_blank"
+                      className="text-xs text-primary hover:underline"
+                    >
+                      Manager
+                    </Link>
+                  ) : null}
+                </div>
+                <div className="flex items-center gap-2 text-xs text-muted">
+                  <span>Settlement:</span>
+                  <Badge variant="outline">
+                    {predixData?.settlement?.settlement_status ?? "pending"}
+                  </Badge>
+                  {predixData?.settlement?.settlement_tx_hash && predixData?.onchain?.explorerBaseUrl ? (
+                    <Link
+                      href={`${predixData.onchain.explorerBaseUrl}/tx/${predixData.settlement.settlement_tx_hash}`}
+                      target="_blank"
+                      className="text-primary hover:underline"
+                    >
+                      tx
+                    </Link>
+                  ) : null}
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs font-semibold text-muted">Recent events</p>
+                  {predixData?.mergedLogs?.length ? (
+                    <div className="space-y-1 max-h-40 overflow-y-auto">
+                      {predixData.mergedLogs.slice(0, 6).map((log: any) => (
+                        <div
+                          key={log.id}
+                          className="rounded-md border border-border/60 bg-surface/60 px-2 py-1 text-xs flex items-center justify-between gap-2"
+                        >
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline">{log.action}</Badge>
+                            <span className="text-muted">{new Date(log.created_at).toLocaleString()}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge variant={log.tx_status === "failed" ? "error" : "outline"}>
+                              {log.tx_status ?? "pending"}
+                            </Badge>
+                            {log.tx_hash && predixData?.onchain?.explorerBaseUrl ? (
+                              <Link
+                                href={`${predixData.onchain.explorerBaseUrl}/tx/${log.tx_hash}`}
+                                target="_blank"
+                                className="text-primary hover:underline"
+                              >
+                                tx
+                              </Link>
+                            ) : null}
+                            {log.onchain ? (
+                              <Badge variant="success">On-chain</Badge>
+                            ) : null}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted">No recent events yet.</p>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
 
         {/* Draft Status */}
         <div className="text-center space-y-2">

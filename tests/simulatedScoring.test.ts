@@ -91,7 +91,7 @@ test('computes mark-to-market scoring with unresolved prices', async () => {
 
   const result = await computeAndStoreScores(supabase, 'l1')
   assert.equal(result.scores[0].points, 70)
-  assert.equal(result.snapshots[0].pnl, 20)
+  assert.equal(result.snapshots[0].pnl, '20.0000')
 })
 
 test('uses resolved outcomes for scoring', async () => {
@@ -113,7 +113,7 @@ test('uses resolved outcomes for scoring', async () => {
 
   const result = await computeAndStoreScores(supabase, 'l1')
   assert.equal(result.scores[0].points, 100)
-  assert.equal(result.snapshots[0].pnl, 50)
+  assert.equal(result.snapshots[0].pnl, '50.0000')
   assert.equal(result.scores[0].correct_picks, 1)
 })
 

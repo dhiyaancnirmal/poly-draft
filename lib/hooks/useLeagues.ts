@@ -23,6 +23,7 @@ export function useLeagues() {
           league_members(id, user_id)
         `)
         .order('created_at', { ascending: false })
+        .limit(100)
 
       if (error) {
         console.error('Error fetching leagues:', error)
@@ -63,7 +64,7 @@ export function useLeagues() {
   const joinLeague = async (leagueId: string) => {
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    
+
     if (!user) throw new Error('Not authenticated')
 
     const { data, error } = await supabase

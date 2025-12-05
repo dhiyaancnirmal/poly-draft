@@ -4,6 +4,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
 import { OutcomeSide } from '@/lib/supabase/database-types'
 import { computePeriodIndex } from '@/lib/simulated/periods'
+import { getPredixClients } from '@/lib/onchain/predix'
+import PredixManagerAbi from '@/contracts/abis/PredixManager.json'
+import { keccak256, stringToBytes } from 'viem'
+import { checkRateLimit } from '@/lib/rateLimit'
 
 type SwapBody = {
     leagueId?: string
@@ -102,7 +106,7 @@ export async function POST(request: NextRequest) {
         return badRequest('price is required')
     }
 
-    const supabase = (await createServerClient()) as any
+    const supabase = ((request as any).__supabase ?? (await createServerClient())) as any
     const token = request.headers.get('authorization')?.replace(/Bearer\s+/i, '') || undefined
     const { data: authData, error: authError } = await supabase.auth.getUser(token)
     if (authError || !authData?.user) {
@@ -151,6 +155,19 @@ export async function POST(request: NextRequest) {
 
     if (!membership) {
         return NextResponse.json({ success: false, error: 'User is not a member of this league' }, { status: 403 })
+    }
+
+    const ip =
+        request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+        (request as any).ip ||
+        'unknown'
+    const rate = checkRateLimit(`swap:${user.id}:${ip}`, 20, 60_000)
+    const ipRate = checkRateLimit(`swap:ip:${ip}`, 80, 60_000)
+    if (!rate.allowed || !ipRate.allowed) {
+        return NextResponse.json(
+            { success: false, error: 'Rate limit exceeded', retryAfter: Math.max(rate.resetAt, ipRate.resetAt) },
+            { status: 429 }
+        )
     }
 
     let toMarketOutcome
@@ -246,7 +263,7 @@ export async function POST(request: NextRequest) {
 
     if (typeof body.price === 'number' && refOutcome?.current_price !== undefined && refOutcome?.current_price !== null) {
         const refPrice = Number(refOutcome.current_price)
-        const tolerance = 0.1 // allow ±10% absolute price difference to reduce false rejects when prices are slightly stale
+        const tolerance = 0.05 // allow ±5% absolute price difference when a stored price exists
         if (Number.isFinite(refPrice) && Math.abs(body.price - refPrice) > tolerance) {
             return badRequest('Price exceeds slippage tolerance')
         }
@@ -265,16 +282,64 @@ export async function POST(request: NextRequest) {
         )
     }
 
-    await supabase.from('pick_swap_logs').insert({
-        league_id: league.id,
-        user_id: user.id,
-        action: 'swap',
-        market_id: toMarketOutcome.marketIdUuid,
-        outcome_id: toMarketOutcome.outcomeId,
-        outcome_side: toOutcomeSide,
-        price: body.price ?? null,
-    })
+    const { data: logRow } = await supabase
+        .from('pick_swap_logs')
+        .insert({
+            league_id: league.id,
+            user_id: user.id,
+            action: 'swap',
+            market_id: toMarketOutcome.marketIdUuid,
+            outcome_id: toMarketOutcome.outcomeId,
+            outcome_side: toOutcomeSide,
+            price: body.price ?? null,
+            tx_status: 'pending',
+        })
+        .select('id')
+        .single()
+
+    if (logRow?.id && /^0x[a-fA-F0-9]{40}$/.test(memberWallet)) {
+        appendOnchainLog({
+            leagueId: league.id,
+            marketId: toMarketOutcome.marketIdUuid,
+            outcomeId: toMarketOutcome.outcomeId,
+            userAddress: memberWallet,
+            logId: logRow.id,
+            supabase,
+        }).catch(() => { })
+    }
 
     return NextResponse.json({ success: true, swap })
+}
+
+async function appendOnchainLog(opts: {
+    leagueId: string
+    marketId: string
+    outcomeId: string
+    userAddress: string
+    logId: string
+    supabase: any
+}) {
+    try {
+        const { walletClient, publicClient, cfg } = getPredixClients()
+        const txHash = await walletClient.writeContract({
+            address: cfg.managerAddress,
+            abi: (PredixManagerAbi as any).abi,
+            functionName: 'logSwap',
+            args: [
+                opts.userAddress as `0x${string}`,
+                keccak256(stringToBytes(opts.leagueId)),
+                keccak256(stringToBytes(opts.marketId)),
+                keccak256(stringToBytes(opts.outcomeId)),
+            ],
+        })
+        await publicClient.waitForTransactionReceipt({ hash: txHash })
+        await opts.supabase
+            .from('pick_swap_logs')
+            .update({ tx_hash: txHash, tx_status: 'confirmed', tx_error: null, chain_id: cfg.chainId })
+            .eq('id', opts.logId)
+    } catch (err: any) {
+        const message = err?.shortMessage || err?.message || 'predix log failed'
+        await opts.supabase.from('pick_swap_logs').update({ tx_status: 'failed', tx_error: message }).eq('id', opts.logId)
+    }
 }
 

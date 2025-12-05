@@ -611,6 +611,9 @@ export interface Database {
           outcome_side: 'YES' | 'NO' | null
           price: string | null
           tx_hash: string | null
+          tx_status: 'pending' | 'sent' | 'confirmed' | 'failed' | null
+          tx_error: string | null
+          chain_id: number | null
           metadata: Json | null
           created_at: string
         }
@@ -624,6 +627,9 @@ export interface Database {
           outcome_side?: 'YES' | 'NO' | null
           price?: string | null
           tx_hash?: string | null
+          tx_status?: 'pending' | 'sent' | 'confirmed' | 'failed' | null
+          tx_error?: string | null
+          chain_id?: number | null
           metadata?: Json | null
           created_at?: string
         }
@@ -637,6 +643,9 @@ export interface Database {
           outcome_side?: 'YES' | 'NO' | null
           price?: string | null
           tx_hash?: string | null
+          tx_status?: 'pending' | 'sent' | 'confirmed' | 'failed' | null
+          tx_error?: string | null
+          chain_id?: number | null
           metadata?: Json | null
           created_at?: string
         }
@@ -656,6 +665,11 @@ export interface Database {
           best_streak: number
           current_streak: number
           updated_at: string
+          predix_settled_points: number
+          settlement_tx_hash: string | null
+          settlement_status: 'pending' | 'sent' | 'confirmed' | 'failed'
+          settlement_error: string | null
+          settlement_updated_at: string
         }
         Insert: {
           id?: string
@@ -671,6 +685,11 @@ export interface Database {
           best_streak?: number
           current_streak?: number
           updated_at?: string
+          predix_settled_points?: number
+          settlement_tx_hash?: string | null
+          settlement_status?: 'pending' | 'sent' | 'confirmed' | 'failed'
+          settlement_error?: string | null
+          settlement_updated_at?: string
         }
         Update: {
           id?: string
@@ -686,6 +705,11 @@ export interface Database {
           best_streak?: number
           current_streak?: number
           updated_at?: string
+          predix_settled_points?: number
+          settlement_tx_hash?: string | null
+          settlement_status?: 'pending' | 'sent' | 'confirmed' | 'failed'
+          settlement_error?: string | null
+          settlement_updated_at?: string
         }
       }
       draft_transactions: {

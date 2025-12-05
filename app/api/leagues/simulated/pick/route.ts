@@ -4,6 +4,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
 import { OutcomeSide } from '@/lib/supabase/database-types'
 import { computePeriodIndex } from '@/lib/simulated/periods'
+import { getPredixClients } from '@/lib/onchain/predix'
+import PredixManagerAbi from '@/contracts/abis/PredixManager.json'
+import { keccak256, stringToBytes } from 'viem'
+import { checkRateLimit } from '@/lib/rateLimit'
 
 type PickBody = {
   leagueId?: string
@@ -87,7 +91,7 @@ export async function POST(request: NextRequest) {
   if (!marketId) return badRequest('marketId is required')
   if (!outcomeSide || !['YES', 'NO'].includes(outcomeSide)) return badRequest('outcomeSide must be YES or NO')
 
-  const supabase = (await createServerClient()) as any
+  const supabase = ((request as any).__supabase ?? (await createServerClient())) as any
   const token = request.headers.get('authorization')?.replace(/Bearer\s+/i, '') || undefined
   const { data: authData, error: authError } = await supabase.auth.getUser(token)
   if (authError || !authData?.user) {
@@ -142,6 +146,16 @@ export async function POST(request: NextRequest) {
 
   if (!membership) {
     return NextResponse.json({ success: false, error: 'User is not a member of this league' }, { status: 403 })
+  }
+
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || (request as any).ip || 'unknown'
+  const rate = checkRateLimit(`pick:${user.id}:${ip}`, 15, 60_000)
+  const ipRate = checkRateLimit(`pick:ip:${ip}`, 60, 60_000)
+  if (!rate.allowed || !ipRate.allowed) {
+    return NextResponse.json(
+      { success: false, error: 'Rate limit exceeded', retryAfter: Math.max(rate.resetAt, ipRate.resetAt) },
+      { status: 429 }
+    )
   }
 
   // Ensure market/outcome records exist
@@ -212,16 +226,67 @@ export async function POST(request: NextRequest) {
   }
 
   // Append transparency log
-  await supabase.from('pick_swap_logs').insert({
-    league_id: league.id,
-    user_id: user.id,
-    action: 'pick',
-    market_id: marketOutcome.marketIdUuid,
-    outcome_id: marketOutcome.outcomeId,
-    outcome_side: outcomeSide,
-    price: price ?? null,
-  })
+  const { data: logRow } = await supabase
+    .from('pick_swap_logs')
+    .insert({
+      league_id: league.id,
+      user_id: user.id,
+      action: 'pick',
+      market_id: marketOutcome.marketIdUuid,
+      outcome_id: marketOutcome.outcomeId,
+      outcome_side: outcomeSide,
+      price: price ?? null,
+      tx_status: 'pending',
+    })
+    .select('id')
+    .single()
+
+  if (logRow?.id && /^0x[a-fA-F0-9]{40}$/.test(memberWallet)) {
+    appendOnchainLog({
+      leagueId: league.id,
+      marketId: marketOutcome.marketIdUuid as string,
+      outcomeId: marketOutcome.outcomeId as string,
+      userAddress: memberWallet,
+      logId: logRow.id,
+      supabase,
+    }).catch(() => {})
+  }
 
   return NextResponse.json({ success: true, pick })
+}
+
+async function appendOnchainLog(opts: {
+  leagueId: string
+  marketId: string
+  outcomeId: string
+  userAddress: string
+  logId: string
+  supabase: any
+}) {
+  try {
+    const { walletClient, publicClient, cfg } = getPredixClients()
+    const txHash = await walletClient.writeContract({
+      address: cfg.managerAddress,
+      abi: (PredixManagerAbi as any).abi,
+      functionName: 'logPick',
+      args: [
+        opts.userAddress as `0x${string}`,
+        keccak256(stringToBytes(opts.leagueId)),
+        keccak256(stringToBytes(opts.marketId)),
+        keccak256(stringToBytes(opts.outcomeId)),
+      ],
+    })
+    await publicClient.waitForTransactionReceipt({ hash: txHash })
+    await opts.supabase
+      .from('pick_swap_logs')
+      .update({ tx_hash: txHash, tx_status: 'confirmed', tx_error: null, chain_id: cfg.chainId })
+      .eq('id', opts.logId)
+  } catch (err: any) {
+    const message = err?.shortMessage || err?.message || 'predix log failed'
+    await opts.supabase
+      .from('pick_swap_logs')
+      .update({ tx_status: 'failed', tx_error: message })
+      .eq('id', opts.logId)
+  }
 }
 

@@ -32,7 +32,7 @@ const config: Config = {
         border: 'var(--border)',
       },
       fontFamily: {
-        sans: ['var(--font-inter)', 'Inter', 'Helvetica', 'Arial', 'sans-serif'],
+        sans: ['var(--font-tiktok-sans)', '"TikTok Sans"', 'system-ui', '-apple-system', '"Segoe UI"', 'sans-serif'],
       },
       maxWidth: {
         mobile: '448px', // 28rem - mobile-first max width

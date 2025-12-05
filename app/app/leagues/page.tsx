@@ -136,6 +136,7 @@ export default function LeaguesPage() {
               };
 
               const displayStatus = getDisplayStatus();
+              const modeLabel = league.mode === 'live' ? 'Polymarket routing' : league.mode === 'competitive' ? 'Competitive' : 'Simulated picks';
 
               return (
                 <div
@@ -156,9 +157,9 @@ export default function LeaguesPage() {
                       name: league.name,
                       members: league.league_members?.length || 0,
                       maxMembers: league.max_players,
-                      prizePool: league.mode === 'competitive' ? 'TBD' : 'Social',
+                      prizePool: modeLabel,
                       status: displayStatus,
-                      entryFee: 'Free'
+                      entryFee: modeLabel === 'Polymarket routing' ? 'On-chain' : 'Free'
                     }}
                     action={
                     <>

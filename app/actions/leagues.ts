@@ -10,12 +10,21 @@ export async function createLeague(formData: FormData) {
     throw new Error('Not authenticated')
   }
 
+  const maxPlayersValue = parseInt(formData.get('max_players') as string) || 10
+  const leagueMode = (formData.get('league_mode') as string) === 'simulated' ? 'social' : 'live'
+  const cadenceType = (formData.get('cadence_type') as string) === 'weekly' ? 'weekly' : 'daily'
+  const seasonLengthDays = cadenceType === 'daily' ? 7 : 28
+  const endTime = new Date(Date.now() + seasonLengthDays * 24 * 60 * 60 * 1000).toISOString()
+
   const leagueData: any = {
-    name: formData.get('name') as string,
-    description: formData.get('description') as string,
-    entry_fee: parseFloat(formData.get('entry_fee') as string),
-    max_players: parseInt(formData.get('max_players') as string),
-    creator_id: user.id
+    name: (formData.get('name') as string)?.trim(),
+    description: (formData.get('description') as string)?.trim() || null,
+    max_players: maxPlayersValue,
+    creator_id: user.id,
+    creator_address: user.email || (user.user_metadata as any)?.wallet_address || user.id,
+    end_time: endTime,
+    status: 'open',
+    mode: leagueMode
   }
 
   const { data, error } = await supabase

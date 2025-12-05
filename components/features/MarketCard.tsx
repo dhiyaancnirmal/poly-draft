@@ -1,9 +1,12 @@
+"use client";
+
 import { Card, CardContent, CardHeader } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { SkeletonText } from "@/components/ui/Skeleton";
 import { Button } from "@/components/ui/Button";
 import { ExtendedMarketCardProps } from "@/lib/types/polymarket";
 import { formatVolume, formatEndTime, formatLocalEndDate } from "@/lib/api/polymarket";
+import { usePreferences } from "@/lib/providers/PreferencesProvider";
 
 interface MarketCardProps extends ExtendedMarketCardProps {
   loading?: boolean;
@@ -11,6 +14,8 @@ interface MarketCardProps extends ExtendedMarketCardProps {
 }
 
 export function MarketCard({ market, loading, onSelect, selectedSide, selectedMarket, livePrice, isLive, className }: MarketCardProps) {
+  const { marketDisplayMode } = usePreferences();
+
   if (loading) {
     return (
       <Card className={className}>
@@ -43,6 +48,19 @@ export function MarketCard({ market, loading, onSelect, selectedSide, selectedMa
   const priceChangeLabel = priceChange !== 0 ? `${priceChange > 0 ? '+' : ''}${(priceChange * 100).toFixed(1)}%` : '—';
   const isSelected = selectedMarket === market.id;
   const liveDot = isLive ? 'bg-success shadow-[0_0_0_6px_rgba(52,211,153,0.18)]' : 'bg-error shadow-[0_0_0_6px_rgba(244,114,182,0.18)]';
+
+  const formatDisplay = (value: number) => {
+    const clamp = Math.min(Math.max(value, 0), 1);
+    if (marketDisplayMode === "probability") {
+      return `${(clamp * 100).toFixed(1)}%`;
+    }
+    if (marketDisplayMode === "odds") {
+      const decimalOdds = clamp > 0 ? (1 / clamp) : Infinity;
+      return `${decimalOdds === Infinity ? "—" : decimalOdds.toFixed(2)}x`;
+    }
+    // price
+    return `$${value.toFixed(2)}`;
+  };
 
   return (
     <Card className={`h-full ${isSelected ? 'ring-2 ring-primary' : ''} ${className ?? ''}`}>
@@ -79,7 +97,7 @@ export function MarketCard({ market, loading, onSelect, selectedSide, selectedMa
               onClick={() => onSelect?.(market.id, 'YES')}
             >
               <span className="text-xs font-medium text-muted">YES</span>
-              <span className="font-bold text-xl text-success">${yesPrice.toFixed(2)}</span>
+              <span className="font-bold text-xl text-success">{formatDisplay(yesPrice)}</span>
             </Button>
             <Button
               variant="secondary"
@@ -90,7 +108,7 @@ export function MarketCard({ market, loading, onSelect, selectedSide, selectedMa
               onClick={() => onSelect?.(market.id, 'NO')}
             >
               <span className="text-xs font-medium text-muted">NO</span>
-              <span className="font-bold text-xl text-error">${noPrice.toFixed(2)}</span>
+              <span className="font-bold text-xl text-error">{formatDisplay(noPrice)}</span>
             </Button>
           </div>
 

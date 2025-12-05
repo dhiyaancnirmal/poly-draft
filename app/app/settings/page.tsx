@@ -53,6 +53,18 @@ export default function SettingsPage() {
   return (
     <AppLayout title="Settings">
       <div className="p-4 space-y-6 pb-24">
+        <Card className="p-4 border-dashed border-primary/40 bg-primary/5">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-text">Settings moved</p>
+              <p className="text-xs text-muted">Manage theme and market display preferences from your Profile.</p>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => window.location.assign("/app/profile")}>
+              Go to Profile
+            </Button>
+          </div>
+        </Card>
+
         {/* Profile Section */}
         {loading ? (
           <Card className="p-6">

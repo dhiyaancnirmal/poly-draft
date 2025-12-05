@@ -85,7 +85,9 @@ export default function HomePage() {
         <section className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-text">Active Leagues</h2>
-            <Badge variant="info">Loading...</Badge>
+            <Badge variant={isLoadingLeagues ? "info" : "default"}>
+              {isLoadingLeagues ? "Loading..." : `${leagues.filter((l) => l.status !== 'ended' && l.status !== 'cancelled').length} live`}
+            </Badge>
           </div>
 
           <div className="space-y-3">
@@ -104,6 +106,7 @@ export default function HomePage() {
                   if (isFull) return 'full';
                   return 'active';
                 };
+                const modeLabel = league.mode === 'live' ? 'Polymarket routing' : league.mode === 'competitive' ? 'Competitive' : 'Simulated picks';
 
                 return (
                   <LeagueCard
@@ -113,9 +116,9 @@ export default function HomePage() {
                       name: league.name,
                       members: league.league_members?.length || 0,
                       maxMembers: league.max_players,
-                      prizePool: league.mode === 'competitive' ? 'TBD' : 'Social',
+                      prizePool: modeLabel,
                       status: getDisplayStatus(),
-                      entryFee: 'Free'
+                      entryFee: modeLabel === 'Polymarket routing' ? 'On-chain' : 'Free'
                     }}
                   />
                 );

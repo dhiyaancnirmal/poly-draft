@@ -1,5 +1,3 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -66,7 +64,7 @@ body {
     linear-gradient(180deg, color-mix(in srgb, var(--background) 96%, transparent) 0%, var(--background) 68%, color-mix(in srgb, var(--surface-highlight) 25%, transparent) 100%);
   color: var(--foreground);
   font-feature-settings: "ss01", "ss02", "cv01", "cv02";
-  font-family: 'Inter', system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-family: var(--font-tiktok-sans), system-ui, -apple-system, "Segoe UI", sans-serif;
   -webkit-font-smoothing: antialiased;
   transition: background-color 0.25s ease, color 0.25s ease, background-image 0.35s ease;
 }

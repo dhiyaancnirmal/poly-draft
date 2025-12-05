@@ -4,18 +4,21 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
-import { ArrowLeft, DollarSign, Users, CalendarRange, X } from "lucide-react";
+import { Badge } from "@/components/ui/Badge";
+import { ArrowLeft, Users, CalendarRange, X, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useState, useMemo } from "react";
 import { useAuth } from "@/lib/hooks";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import type { Database } from "@/lib/supabase";
   
 export default function CreateLeaguePage() {
     const [isLoading, setIsLoading] = useState(false);
     const [isCadenceModalOpen, setIsCadenceModalOpen] = useState(false);
     const [cadenceType, setCadenceType] = useState<"daily" | "weekly">("daily");
     const [marketsPerPeriod, setMarketsPerPeriod] = useState<number>(1);
+    const [leagueMode, setLeagueMode] = useState<"polymarket" | "simulated">("polymarket");
     const { user } = useAuth();
     const router = useRouter();
     const supabase = createClient();
@@ -24,6 +27,26 @@ export default function CreateLeaguePage() {
         daily: [1, 2, 3],
         weekly: [3, 5, 7],
     }), []);
+
+    const leagueModeOptions: Array<{
+        id: "polymarket" | "simulated";
+        title: string;
+        description: string;
+        badge: string;
+    }> = [
+        {
+            id: "polymarket",
+            title: "Polymarket Routing",
+            description: "Send picks to real markets and track live pricing. Best for on-chain play.",
+            badge: "Live markets"
+        },
+        {
+            id: "simulated",
+            title: "Simulated Picks",
+            description: "Practice mode using in-app currency (coming soon). No real funds routed.",
+            badge: "Sandbox"
+        }
+    ];
  
      const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -37,14 +60,19 @@ export default function CreateLeaguePage() {
         
         try {
             const formData = new FormData(e.currentTarget);
-            const leagueData = {
-                name: formData.get('name') as string,
-                description: formData.get('description') as string,
-                entry_fee: parseFloat(formData.get('entry_fee') as string),
-                max_players: parseInt(formData.get('max_players') as string),
+            const maxPlayersValue = parseInt(formData.get('max_players') as string) || 10;
+            const creatorAddress = (user.email || (user.user_metadata as any)?.wallet_address || user.id) as string;
+            const seasonLengthDays = cadenceType === "daily" ? 7 : 28;
+            const endTime = new Date(Date.now() + seasonLengthDays * 24 * 60 * 60 * 1000).toISOString();
+            const leagueData: Database["public"]["Tables"]["leagues"]["Insert"] = {
+                name: (formData.get('name') as string)?.trim(),
+                description: (formData.get('description') as string)?.trim() || null,
+                max_players: maxPlayersValue,
                 creator_id: user.id,
-                cadence_type: cadenceType,
-                markets_per_period: marketsPerPeriod,
+                creator_address: creatorAddress,
+                end_time: endTime,
+                status: "open",
+                mode: leagueMode === "polymarket" ? "live" : "social",
             };
 
             const { data: newLeague, error } = await supabase
@@ -76,13 +104,45 @@ export default function CreateLeaguePage() {
                     Back to Home
                 </Link>
 
-                <div className="space-y-2">
-                    <h1 className="text-2xl font-bold text-text">Create New League</h1>
-                    <p className="text-sm text-muted">Set up your fantasy league and invite friends.</p>
-                </div>
-
                 <form onSubmit={handleSubmit} className="space-y-6">
-                    <Card className="p-4 space-y-4">
+                    <Card className="p-4 space-y-5">
+                        <div className="space-y-1">
+                            <p className="text-xl font-semibold text-text">League basics</p>
+                            <p className="text-sm text-muted">Pick a mode, name it, and choose cadence.</p>
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium text-text flex items-center gap-2">
+                                <Sparkles className="w-4 h-4 text-primary" />
+                                League type
+                            </label>
+                            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                {leagueModeOptions.map((option) => {
+                                    const isActive = leagueMode === option.id;
+                                    return (
+                                        <button
+                                            key={option.id}
+                                            type="button"
+                                            onClick={() => setLeagueMode(option.id)}
+                                            className={`
+                                                flex w-full items-start justify-between gap-3 rounded-xl border px-3 py-3 text-left transition-all
+                                                ${isActive ? "border-primary bg-primary/10 shadow-card" : "border-border/70 bg-surface/70 hover:border-primary/60"}
+                                            `}
+                                        >
+                                            <div className="space-y-1">
+                                                <p className="text-sm font-semibold text-text">{option.title}</p>
+                                                <p className="text-xs text-muted leading-relaxed">{option.description}</p>
+                                            </div>
+                                            <Badge className={isActive ? "bg-primary text-primary-foreground" : "bg-surface-highlight text-muted"}>
+                                                {option.badge}
+                                            </Badge>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                            <input type="hidden" name="league_mode" value={leagueMode} />
+                        </div>
+
                         <Input
                             name="name"
                             label="League Name"
@@ -95,38 +155,20 @@ export default function CreateLeaguePage() {
                             label="Description (Optional)"
                             placeholder="A fun league for crypto enthusiasts"
                         />
- 
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium text-text">Entry Fee</label>
-                                <div className="relative">
-                                    <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
-                                    <Input
-                                        name="entry_fee"
-                                        type="number"
-                                        className="pl-9"
-                                        placeholder="10"
-                                        min="0"
-                                        step="0.01"
-                                        required
-                                    />
-                                </div>
-                            </div>
- 
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium text-text">Max Players</label>
-                                <div className="relative">
-                                    <Users className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
-                                    <Input
-                                        name="max_players"
-                                        type="number"
-                                        className="pl-9"
-                                        placeholder="100"
-                                        min="2"
-                                        max="100"
-                                        required
-                                    />
-                                </div>
+
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium text-text">Max Players</label>
+                            <div className="relative">
+                                <Users className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
+                                <Input
+                                    name="max_players"
+                                    type="number"
+                                    className="pl-9"
+                                    placeholder="10"
+                                    min="2"
+                                    max="100"
+                                    required
+                                />
                             </div>
                         </div>
 

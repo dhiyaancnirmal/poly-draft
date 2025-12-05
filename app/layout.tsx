@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, Source_Code_Pro } from "next/font/google";
+import { Source_Code_Pro, TikTok_Sans } from "next/font/google";
 import { SafeArea } from "@coinbase/onchainkit/minikit";
 import { minikitConfig } from "../minikit.config";
 import { RootProvider } from "./rootProvider";
@@ -42,9 +42,10 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-const inter = Inter({
-  variable: "--font-inter",
+const tikTokSans = TikTok_Sans({
+  variable: "--font-tiktok-sans",
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
 });
 
 const sourceCodePro = Source_Code_Pro({
@@ -63,7 +64,7 @@ export default function RootLayout({
         <head>
           <script dangerouslySetInnerHTML={{ __html: themeInitializer }} />
         </head>
-        <body className={`${inter.variable} ${sourceCodePro.variable}`}>
+        <body className={`${tikTokSans.variable} ${sourceCodePro.variable}`}>
           <SafeArea>
             <PageTransition>{children}</PageTransition>
           </SafeArea>

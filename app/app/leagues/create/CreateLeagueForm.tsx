@@ -89,8 +89,16 @@ export function CreateLeagueForm() {
             throw new Error(data?.error || "Failed to create league");
           }
 
-          setJoinCode(data.league?.joinCode || data.league?.join_code);
-          router.push(`/app/leagues/${data.league?.id}`);
+          const createdJoinCode = data.league?.joinCode || data.league?.join_code;
+          const createdId = data.league?.id;
+          const destination = createdId || createdJoinCode;
+
+          setJoinCode(createdJoinCode);
+          if (!destination) {
+            throw new Error("League created but no identifier returned");
+          }
+
+          router.push(`/app/leagues/${destination}`);
           return;
         }
 

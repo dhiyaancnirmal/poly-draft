@@ -9,11 +9,6 @@ type Props = {
   params: { leagueId: string };
 };
 
-function isUuid(value: string | undefined | null) {
-  if (!value) return false;
-  return /^[0-9a-fA-F-]{36}$/.test(value.trim());
-}
-
 export default async function LeagueDashboardPage({ params }: Props) {
   const leagueId = params.leagueId;
 
@@ -50,27 +45,6 @@ export default async function LeagueDashboardPage({ params }: Props) {
       </AppLayout>
     );
   }
-  
-  if (!isUuid(leagueId)) {
-    return (
-      <AppLayout title="League">
-        <div className="p-4">
-          <Card>
-            <CardContent className="space-y-3 py-6">
-              <p className="text-lg font-semibold text-foreground">Unable to load league</p>
-              <p className="text-sm text-muted-foreground">Invalid league id.</p>
-              <Link
-                href="/app/leagues"
-                className="inline-flex items-center rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:brightness-110 transition"
-              >
-                Back to Leagues
-              </Link>
-            </CardContent>
-          </Card>
-        </div>
-      </AppLayout>
-    );
-  }
 
   const supabase = await createClient();
   const {
@@ -94,8 +68,8 @@ export default async function LeagueDashboardPage({ params }: Props) {
         league_members(team_name,user_id,joined_at)
       `
     )
-    .eq("id", leagueId)
-    .single();
+    .or(`id.eq.${leagueId},join_code.eq.${leagueId}`)
+    .maybeSingle();
 
   if (error || !league) {
     return (

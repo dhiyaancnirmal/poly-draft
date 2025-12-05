@@ -9,6 +9,8 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@circle-fin/adapter-viem-v2": "^1.1.1",
+    "@circle-fin/bridge-kit": "^1.1.2",
     "@coinbase/onchainkit": "latest",
     "@farcaster/auth-kit": "^0.8.1",
     "@farcaster/miniapp-sdk": "^0.2.1",

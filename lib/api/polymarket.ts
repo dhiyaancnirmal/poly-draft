@@ -8,6 +8,18 @@ const POLYMARKET_API = 'https://gamma-api.polymarket.com';
 // Category detection from market data
 export function detectMarketCategory(event: PolymarketEvent): MarketCategory {
   const { title, category, categories, tags } = event;
+  const SPORT_TEAM_KEYWORDS = [
+    // NBA
+    'lakers','celtics','suns','rockets','spurs','cavaliers','warriors','knicks','bulls','bucks',
+    'heat','mavericks','clippers','kings','jazz','nuggets','timberwolves','grizzlies','blazers',
+    'trail blazers','raptors','wizards','sixers','76ers','hawks','hornets','pistons','pacers',
+    'magic','thunder','pelicans','nets',
+    // NFL shorthand to strengthen detection on "vs" titles
+    'patriots','chiefs','cowboys','eagles','steelers','giants','jets','bears','packers','ravens',
+    'bills','browns','saints','vikings','dolphins','chargers','rams','raiders','niners','49ers',
+    'bengals','broncos','texans','colts','jaguars','panthers','falcons','cardinals','commanders',
+    'titans','seahawks','buccaneers','lions'
+  ];
 
   // Prefer native Polymarket categories/tags when available
   const candidateCategories = [
@@ -103,7 +115,9 @@ export function detectMarketCategory(event: PolymarketEvent): MarketCategory {
       titleLower.includes('mlb') || titleLower.includes('nhl') ||
       titleLower.includes('soccer') || titleLower.includes('football') ||
       titleLower.includes('fifa') || titleLower.includes('world cup') ||
-      titleLower.includes('olympics')) {
+      titleLower.includes('olympics') ||
+      SPORT_TEAM_KEYWORDS.some(team => titleLower.includes(team)) ||
+      titleLower.includes(' vs ') || titleLower.includes(' vs. ') || titleLower.includes(' @ ')) {
     return MARKET_CATEGORIES.SPORTS;
   }
 
@@ -162,6 +176,9 @@ function normalizeMarket(raw: any, outcomePrices: number[], outcomes: string[], 
     volume1yr: raw.volume1yr,
     outcomes: outcomes.join(','),
     outcomePrices: outcomePrices.map((p) => p.toString()).join(','),
+    bestBid: raw.bestBid,
+    bestAsk: raw.bestAsk,
+    lastTradePrice: raw.lastTradePrice,
   } as PolymarketMarket;
 }
 
@@ -187,18 +204,14 @@ function buildEventFromMarket(raw: any, market: PolymarketMarket, endTime: strin
 // Fetch markets ending within 7 days and return top 20 by 24h volume
 export async function fetchDailyMarkets(targetDate?: Date): Promise<MarketSelection[]> {
   try {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const windowStart = targetDate ? new Date(targetDate) : today;
-    windowStart.setHours(0, 0, 0, 0);
-
+    // Target window: from "now" through end of day tomorrow (inclusive)
+    const windowStart = targetDate ? new Date(targetDate) : new Date();
     const windowEnd = new Date(windowStart);
-    windowEnd.setDate(windowStart.getDate() + 7);
+    windowEnd.setDate(windowEnd.getDate() + 1);
     windowEnd.setHours(23, 59, 59, 999);
 
-    // Never include markets that have already ended before "today"
-    const lowerBound = windowStart > today ? windowStart : today;
+    // Only include markets ending within the window
+    const lowerBound = windowStart;
 
     const limit = 500;
     let offset = 0;
@@ -253,9 +266,10 @@ export async function fetchDailyMarkets(targetDate?: Date): Promise<MarketSelect
         const endDate = new Date(endTime);
         if (Number.isNaN(endDate.getTime())) return null;
 
-        // Must be active, not closed, ending after lowerBound and within 7 days
+        // Must be active, not closed, ending tomorrow within the defined window
         if (!(market.active === true && market.closed !== true)) return null;
-        if (endDate <= lowerBound || endDate > windowEnd) return null;
+        // Accept any market ending between windowStart (inclusive) and windowEnd (inclusive)
+        if (endDate < lowerBound || endDate > windowEnd) return null;
 
         // Parse prices
         const parsedOutcomePrices = parseOutcomePrices(market.outcomePrices);
@@ -272,6 +286,11 @@ export async function fetchDailyMarkets(targetDate?: Date): Promise<MarketSelect
             ? market.outcomes.split(',').map((o: string) => o.trim())
             : ['Yes', 'No'];
 
+        // Skip non-binary markets (e.g., soccer with draw) or markets containing "draw"
+        if (outcomesArray.length !== 2) return null;
+        const hasDraw = outcomesArray.some((o) => o.toLowerCase().includes('draw'));
+        if (hasDraw) return null;
+
         const normalizedMarket = normalizeMarket(market, parsedOutcomePrices, outcomesArray, endTime);
         const event = buildEventFromMarket(market, normalizedMarket, endTime);
         const category = detectMarketCategory(event);
@@ -282,15 +301,87 @@ export async function fetchDailyMarkets(targetDate?: Date): Promise<MarketSelect
           category,
           confidence: 100,
           sortVolume: Number(market.volume24hr ?? market.volume ?? 0),
+          tokenIds: (() => {
+            const raw = market.clobTokenIds;
+            if (Array.isArray(raw)) return raw.map((t: any) => String(t).trim()).filter(Boolean);
+            if (typeof raw === 'string') {
+              try {
+                const parsed = JSON.parse(raw);
+                if (Array.isArray(parsed)) return parsed.map((t: any) => String(t).trim()).filter(Boolean);
+              } catch {
+                // not JSON, fall back to CSV
+              }
+              return raw.split(',').map((t: string) => t.trim()).filter(Boolean);
+            }
+            return [];
+          })(),
         };
       })
-      .filter(Boolean) as Array<MarketSelection & { sortVolume: number }>;
+      .filter(Boolean) as Array<MarketSelection & { sortVolume: number; tokenIds: string[]; market: any }>;
+
+    // Fetch best BUY prices from CLOB for YES/NO tokens
+    if (filtered.length > 0) {
+      const priceParams: Array<{ token_id: string; side: 'BUY' }> = [];
+      for (const item of filtered) {
+        const tokenIds = item.tokenIds;
+        if (tokenIds.length >= 2) {
+          priceParams.push({ token_id: tokenIds[0], side: 'BUY' });
+          priceParams.push({ token_id: tokenIds[1], side: 'BUY' });
+        }
+      }
+
+      if (priceParams.length > 0) {
+        try {
+          const priceRes = await fetch('https://clob.polymarket.com/prices', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body: JSON.stringify({ params: priceParams }),
+          });
+
+          if (priceRes.ok) {
+            const priceData = await priceRes.json() as Record<string, { BUY?: string; SELL?: string }>;
+            for (const item of filtered) {
+              const tokenIds = item.tokenIds;
+              if (tokenIds.length >= 2) {
+                const yesBuy = priceData[tokenIds[0]]?.BUY;
+                const noBuy = priceData[tokenIds[1]]?.BUY;
+                const yesPriceNum = yesBuy ? Number(yesBuy) : undefined;
+                const noPriceNum = noBuy ? Number(noBuy) : undefined;
+                if (yesPriceNum !== undefined && !Number.isNaN(yesPriceNum)) {
+                  item.market.bestBuyYesPrice = yesPriceNum;
+                }
+                if (noPriceNum !== undefined && !Number.isNaN(noPriceNum)) {
+                  item.market.bestBuyNoPrice = noPriceNum;
+                }
+                // Also refresh outcomePrices to reflect the best BUY prices if both are present
+                if (yesPriceNum !== undefined && noPriceNum !== undefined) {
+                  item.market.outcomePrices = [yesPriceNum, noPriceNum].map((p) => p.toString()).join(',');
+                }
+              }
+            }
+          }
+        } catch (err) {
+          console.error('Failed to fetch best BUY prices:', err);
+        }
+      }
+    }
 
     // Enforce minimum category diversity: aim for at least 2 per category when available,
     // then fill remaining slots by highest volume.
-    const grouped = new Map<string, Array<MarketSelection & { sortVolume: number }>>();
+    const grouped = new Map<string, Array<MarketSelection & { sortVolume: number; tokenIds: string[]; market: any }>>();
     const sortByVolumeDesc = (a: { sortVolume: number }, b: { sortVolume: number }) =>
       b.sortVolume - a.sortVolume;
+    const sortByEndThenVolume = (
+      a: MarketSelection & { sortVolume: number; tokenIds: string[] },
+      b: MarketSelection & { sortVolume: number; tokenIds: string[] },
+    ) => {
+      const endA = new Date(a.market.endDate).getTime();
+      const endB = new Date(b.market.endDate).getTime();
+      if (!Number.isNaN(endA) && !Number.isNaN(endB) && endA !== endB) {
+        return endA - endB; // earlier end times first
+      }
+      return sortByVolumeDesc(a, b);
+    };
 
     for (const item of filtered) {
       const cat = item.category || 'other';
@@ -298,12 +389,13 @@ export async function fetchDailyMarkets(targetDate?: Date): Promise<MarketSelect
       grouped.get(cat)!.push(item);
     }
 
-    // Sort each category by volume
+    // Sort each category by soonest end time, then volume
     for (const [, items] of grouped) {
-      items.sort(sortByVolumeDesc);
+      items.sort(sortByEndThenVolume);
     }
 
-    const selection: Array<MarketSelection & { sortVolume: number }> = [];
+    const MAX_RESULTS = 50;
+    const selection: Array<MarketSelection & { sortVolume: number; tokenIds: string[] }> = [];
 
     // First pass: take up to 2 from each category (ensures diversity if available)
     for (const [, items] of grouped) {
@@ -312,20 +404,20 @@ export async function fetchDailyMarkets(targetDate?: Date): Promise<MarketSelect
     }
 
     // Second pass: fill remaining slots by overall volume
-    if (selection.length < 20) {
+    if (selection.length < MAX_RESULTS) {
       const remainingPool = Array.from(grouped.values())
         .flatMap((items) => items)
         .filter((item) => !selection.includes(item))
-        .sort(sortByVolumeDesc);
+        .sort(sortByEndThenVolume);
 
-      const slotsLeft = 20 - selection.length;
+      const slotsLeft = MAX_RESULTS - selection.length;
       selection.push(...remainingPool.slice(0, slotsLeft));
     }
 
     const topMarkets = selection
-      .sort(sortByVolumeDesc)
-      .slice(0, 20)
-      .map(({ sortVolume, ...rest }) => rest);
+      .sort(sortByEndThenVolume)
+      .slice(0, MAX_RESULTS)
+      .map(({ sortVolume, tokenIds, ...rest }) => rest);
 
     return topMarkets;
   } catch (error) {

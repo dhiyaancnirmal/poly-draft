@@ -1,236 +1,214 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useState } from "react";
 import Image from "next/image";
-import { useMiniKit, useAddFrame, useOpenUrl } from "@coinbase/onchainkit/minikit";
-import { useMiniAppContext } from "@/hooks/useMiniAppContext";
+import { sdk } from "@farcaster/miniapp-sdk";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
-import { Badge } from "@/components/ui/Badge";
-import { Card, CardContent } from "@/components/ui/Card";
 import { createClient } from "@/lib/supabase/client";
-import { cn } from "@/lib/utils";
-import { motion } from "framer-motion";
-import { Trophy, Users, TrendingUp, Zap, ArrowRight } from "lucide-react";
+import { useTheme } from "@/lib/hooks/useTheme";
 
-export default function SplashPage() {
-  const { setFrameReady, isFrameReady } = useMiniKit();
-  const addFrame = useAddFrame();
-  const openUrl = useOpenUrl();
+export default function Splash() {
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
-  const { isInMiniApp, user, context, loading: contextLoading, error: contextError } = useMiniAppContext();
-  const [signupInProgress, setSignupInProgress] = useState(false);
-  const [authError, setAuthError] = useState<string | null>(null);
-  const [frameAdded, setFrameAdded] = useState(false);
-  const [notificationState, setNotificationState] = useState<"on" | "off" | null>(null);
+  const { resolvedTheme } = useTheme();
 
-  const supabase = useMemo(() => createClient(), []);
-
-  // Signal frame readiness
-  useEffect(() => {
-    if (!isFrameReady) setFrameReady();
-  }, [setFrameReady, isFrameReady]);
-
-  // Add frame action
-  const handleAddFrame = useCallback(async () => {
-    const result = await addFrame();
-    if (result) {
-      setFrameAdded(true);
-      // Check if notification was enabled based on result
-      const hasNotification = (result as { notificationDetails?: { url?: string } }).notificationDetails?.url;
-      setNotificationState(hasNotification ? "on" : "off");
-    }
-  }, [addFrame]);
-
-  // Handle quick auth signup
-  const handleQuickAuthSignup = useCallback(async () => {
-    if (!user?.fid) {
-      setAuthError("Missing Farcaster ID");
-      return;
-    }
-
-    setSignupInProgress(true);
-    setAuthError(null);
+  const handleSignIn = async () => {
+    setIsLoading(true);
+    setError(null);
 
     try {
-      // Call Supabase sign-in with Farcaster ID
-      const { data, error } = await supabase.auth.signInWithIdToken({
-        provider: "farcaster",
-        token: String(user.fid),
-        nonce: context?.frameId || "miniapp-nonce",
-      });
+      // Step 1: Get Farcaster authentication token
+      const { token } = await sdk.quickAuth.getToken();
 
-      if (error) {
-        setAuthError(error.message);
-        return;
+      if (!token) {
+        throw new Error('Failed to get authentication token');
       }
 
-      // Navigate to the app
-      router.push("/app");
-    } catch (err: any) {
-      setAuthError(err?.message || "An error occurred");
-    } finally {
-      setSignupInProgress(false);
-    }
-  }, [user?.fid, context?.frameId, supabase, router]);
+      // Step 2: Verify token with backend and get user data
+      const response = await sdk.quickAuth.fetch('/api/auth', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
 
-  // Auto-login if already signed in
-  useEffect(() => {
-    if (user?.fid && isInMiniApp && !contextLoading && !signupInProgress) {
-      handleQuickAuthSignup();
+      if (!response.ok) {
+        throw new Error('Backend authentication failed');
+      }
+
+      const authData = await response.json();
+
+      if (!authData.success || !authData.user) {
+        throw new Error('Invalid authentication response');
+      }
+
+      // Step 3: Reuse/create Supabase user by fid on the server (sets session)
+      const supabase = createClient();
+      const profileData = authData.user.profile || {};
+
+      const sessionResponse = await fetch('/api/auth/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fid: authData.user.fid,
+          profile: profileData
+        })
+      });
+
+      if (!sessionResponse.ok) {
+        const errorBody = await sessionResponse.json().catch(() => null);
+        throw new Error(errorBody?.message || 'Failed to establish session');
+      }
+
+      const sessionData = await sessionResponse.json();
+
+      if (!sessionData.success || !sessionData.session) {
+        throw new Error('Invalid session response');
+      }
+
+      // Store session locally so the client Supabase instance is aware immediately
+      const { access_token, refresh_token } = sessionData.session;
+      const { error: setSessionError } = await supabase.auth.setSession({
+        access_token,
+        refresh_token,
+      });
+
+      if (setSessionError) {
+        throw setSessionError;
+      }
+
+      console.log('User authenticated:', {
+        userId: sessionData.user?.id,
+        fid: authData.user.fid,
+        username: profileData.username,
+        displayName: profileData.displayName,
+        ens: profileData.ensName,
+        wallet: profileData.walletAddress
+      });
+
+      // Navigate to main app
+      router.push("/app");
+    } catch (error) {
+      console.error("Sign in failed:", error);
+      setError(error instanceof Error ? error.message : "Authentication failed. Please try again.");
+    } finally {
+      setIsLoading(false);
     }
-  }, [user?.fid, isInMiniApp, contextLoading, signupInProgress, handleQuickAuthSignup]);
+  };
 
   return (
-    <div className="relative min-h-screen flex flex-col overflow-hidden">
-      {/* Background with gradient */}
-      <div className="absolute inset-0 bg-background">
-        <div 
-          className="absolute inset-0"
-          style={{
-            background: `
-              radial-gradient(ellipse 100% 100% at 50% -20%, hsl(var(--primary) / 0.25), transparent 60%),
-              radial-gradient(ellipse 80% 60% at 80% 50%, hsl(var(--primary) / 0.1), transparent 50%),
-              radial-gradient(ellipse 80% 60% at 20% 80%, hsl(var(--primary) / 0.1), transparent 50%)
-            `
-          }}
-        />
+    <div className="relative h-screen bg-background p-6 overflow-hidden">
+      {/* Probability rain background constrained to mobile width */}
+      <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden flex justify-center">
+        <div className="relative max-w-mobile w-full h-full">
+          {Array.from({ length: 24 }).map((_, columnIndex) => {
+            const numbers = Array.from({ length: 60 }, (_, idx) => `${(idx * 11 + columnIndex * 17) % 101}%`);
+            const left = (columnIndex / 24) * 100;
+            const duration = 8 + (columnIndex % 6);
+            const delay = columnIndex * 0.35;
+            return (
+              <div
+                key={columnIndex}
+                className="absolute top-[-130%] text-[#3B82F6]/80 text-[11px] leading-4 animate-rain"
+                style={{
+                  left: `${left}%`,
+                  animationDuration: `${duration}s`,
+                  animationDelay: `${delay}s`,
+                }}
+              >
+                {numbers.map((num, i) => (
+                  <span key={`${columnIndex}-${i}`} className="block">
+                    {num}
+                  </span>
+                ))}
+              </div>
+            );
+          })}
+        </div>
       </div>
 
-      {/* Content */}
-      <div className="relative z-10 flex-1 flex flex-col items-center justify-center p-6 max-w-md mx-auto">
-        {/* Logo */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="mb-8"
-        >
-          <div className="relative">
+      <div className="absolute inset-x-0 top-[35%] -translate-y-1/2 transform flex items-center justify-center pointer-events-none z-10">
+        <div className="max-w-mobile w-full pointer-events-auto">
+          <div className="flex items-center justify-center gap-3">
             <Image
-              src="/polydraft.svg"
-              alt="PolyDraft"
-              width={80}
-              height={80}
+              src={resolvedTheme === "light" ? "/polydraft-dark.svg" : "/polydraft.svg"}
+              alt="PolyDraft logo"
+              width={52}
+              height={52}
+              className="h-[52px] w-auto"
               priority
-              className="rounded-2xl"
             />
-            <div className="absolute -bottom-2 -right-2">
-              <Badge variant="success" size="sm">Live</Badge>
-            </div>
+            <h1 className="text-5xl font-bold text-text tracking-tight">
+              PolyDraft
+            </h1>
           </div>
-        </motion.div>
+        </div>
+      </div>
 
-        {/* Title */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-          className="text-center mb-8"
-        >
-          <h1 className="text-3xl font-bold text-foreground mb-2">
-            PolyDraft
-          </h1>
-          <p className="text-muted-foreground">
-            Fantasy Prediction Markets
-          </p>
-        </motion.div>
-
-        {/* Features */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-          className="w-full space-y-3 mb-8"
-        >
-          {[
-            { icon: Trophy, text: "Draft markets. Compete. Win." },
-            { icon: Users, text: "Play head-to-head or in leagues" },
-            { icon: TrendingUp, text: "Live Polymarket prices" },
-            { icon: Zap, text: "Powered by Base" },
-          ].map((feature, idx) => (
-            <div
-              key={idx}
-              className="flex items-center gap-3 px-4 py-3 rounded-xl bg-card/50 border border-border/30"
-            >
-              <feature.icon className="h-5 w-5 text-primary" />
-              <span className="text-sm text-foreground">{feature.text}</span>
-            </div>
-          ))}
-        </motion.div>
-
-        {/* Error display */}
-        {(authError || contextError) && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="w-full mb-4"
+      <div className="absolute inset-x-0 top-[65%] flex justify-center px-6 z-10">
+        <div className="max-w-mobile w-full text-center space-y-4">
+          <Button
+            onClick={handleSignIn}
+            loading={isLoading}
+            size="lg"
+            className="w-full"
           >
-            <Card variant="outline" className="border-error/30 bg-error/5">
-              <CardContent className="py-3 text-center">
-                <p className="text-sm text-error">{authError || contextError}</p>
-              </CardContent>
-            </Card>
-          </motion.div>
-        )}
+            <div className="flex items-center justify-center space-x-2">
+              <span>Sign in with</span>
+              <img
+                src="https://cdn.brandfetch.io/id6XsSOVVS/theme/light/logo.svg?c=1bxid64Mup7aczewSAYMX&t=1757929761243"
+                alt="Base"
+                className="h-5 w-auto -mt-1"
+              />
+            </div>
+          </Button>
 
-        {/* CTA Buttons */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.3 }}
-          className="w-full space-y-3"
-        >
-          {isInMiniApp && user ? (
-            <Button
-              size="lg"
-              className="w-full"
-              loading={signupInProgress || contextLoading}
-              onClick={handleQuickAuthSignup}
-            >
-              {signupInProgress ? "Signing in..." : "Continue as "}
-              {user.displayName || user.username || `FID ${user.fid}`}
-              <ArrowRight className="h-4 w-4 ml-2" />
-            </Button>
-          ) : (
-            <Button
-              size="lg"
-              className="w-full"
-              loading={contextLoading}
-              onClick={() => router.push("/app")}
-            >
-              Get Started
-              <ArrowRight className="h-4 w-4 ml-2" />
-            </Button>
-          )}
+          <Button
+            onClick={() => router.push("/app")}
+            size="sm"
+            variant="outline"
+            className="w-full"
+          >
+            🧪 Dev/Test Mode (No Auth Required)
+          </Button>
 
-          {isInMiniApp && !frameAdded && (
-            <Button
-              variant="secondary"
-              size="lg"
-              className="w-full"
-              onClick={handleAddFrame}
-            >
-              Add to Favorites
-            </Button>
-          )}
-
-          {frameAdded && (
-            <div className="text-center">
-              <Badge variant="success" size="sm">
-                {notificationState === "on" ? "✓ Added with notifications" : "✓ Added to favorites"}
-              </Badge>
+          {error && (
+            <div className="p-4 bg-error/10 border border-error/20 rounded-lg">
+              <p className="text-sm text-error font-semibold">Authentication Error</p>
+              <p className="text-xs text-error/80 mt-1">{error}</p>
             </div>
           )}
-        </motion.div>
+
+          <div className="pt-14">
+            <p className="text-xs text-muted">
+              By signing in, you agree to our Terms of Service and Privacy Policy
+            </p>
+          </div>
+        </div>
       </div>
 
-      {/* Footer */}
-      <div className="relative z-10 p-6 text-center">
-        <p className="text-xs text-muted-foreground">
-          Built on Base • Powered by Polymarket
-        </p>
-      </div>
+      <style jsx>{`
+        @keyframes rain {
+          0% {
+            transform: translateY(-20%);
+            opacity: 0;
+          }
+          10% {
+            opacity: 0.18;
+          }
+          100% {
+            transform: translateY(120%);
+            opacity: 0;
+          }
+        }
+        .animate-rain {
+          animation-name: rain;
+          animation-timing-function: linear;
+          animation-iteration-count: infinite;
+        }
+      `}</style>
     </div>
   );
 }

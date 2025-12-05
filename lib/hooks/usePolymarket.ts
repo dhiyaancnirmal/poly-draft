@@ -10,14 +10,15 @@ export const QUERY_KEYS = {
 } as const;
 
 // Hook for fetching daily markets with category diversity
-export function useDailyMarkets(targetDate?: Date, options?: Partial<UseQueryOptions<MarketSelection[], Error>>) {
+export function useDailyMarkets(targetDate?: Date, seed?: string, options?: Partial<UseQueryOptions<MarketSelection[], Error>>) {
   return useQuery({
-    queryKey: [...QUERY_KEYS.dailyMarkets, targetDate?.toISOString()],
+    queryKey: [...QUERY_KEYS.dailyMarkets, targetDate?.toISOString(), seed],
     queryFn: async () => {
       // Use API route instead of direct fetch to Polymarket (fixes CORS)
-      const url = targetDate
-        ? `/api/polymarket/daily-markets?date=${targetDate.toISOString()}`
-        : '/api/polymarket/daily-markets'
+      const params = new URLSearchParams()
+      if (targetDate) params.set('date', targetDate.toISOString())
+      if (seed) params.set('seed', seed)
+      const url = `/api/polymarket/daily-markets${params.toString() ? `?${params.toString()}` : ''}`
 
       const response = await fetch(url)
       if (!response.ok) throw new Error('Failed to fetch markets')

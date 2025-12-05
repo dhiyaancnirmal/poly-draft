@@ -15,8 +15,9 @@ export default function DraftPage() {
   // const { user } = useAuth();
   // const router = = useRouter();
 
-  // Use real market data
-  const { data: marketSelections, isLoading, error } = useDailyMarkets();
+  // Use real market data with shuffle support
+  const [shuffleSeed, setShuffleSeed] = useState(0);
+  const { data: marketSelections, isLoading, error, refetch, isFetching } = useDailyMarkets(undefined, shuffleSeed.toString());
   const {
     selectedMarket,
     selectedSide,
@@ -275,6 +276,19 @@ export default function DraftPage() {
               ? `Confirm: ${selectedSide} for selected market`
               : "Select a market and side"
             }
+          </Button>
+
+          <Button
+            variant="outline"
+            size="lg"
+            className="w-full"
+            onClick={() => {
+              setShuffleSeed((s) => s + 1);
+              refetch();
+            }}
+            disabled={isFetching}
+          >
+            {isFetching ? 'Refreshing...' : 'Change markets'}
           </Button>
         </div>
       </div>

@@ -20,7 +20,8 @@ export default function DraftRoomPage() {
   const { picks, members, currentTurn, isConnected, makePick } = useDraftSync(leagueId);
 
   // Market data (from server proxy)
-  const { data: marketSelections, isLoading, error } = useDailyMarkets();
+  const [shuffleSeed, setShuffleSeed] = useState(0);
+  const { data: marketSelections, isLoading, error, refetch, isFetching } = useDailyMarkets(undefined, shuffleSeed.toString());
   const { livePrices, status: liveStatus } = usePolymarketLivePrices(marketSelections);
 
   // Local selection state
@@ -281,6 +282,19 @@ export default function DraftRoomPage() {
                 ? `Confirm: ${selectedSide} for selected market`
                 : "Select a market and side"
             }
+          </Button>
+
+          <Button
+            variant="outline"
+            size="lg"
+            className="w-full"
+            onClick={() => {
+              setShuffleSeed((s) => s + 1);
+              refetch();
+            }}
+            disabled={isFetching}
+          >
+            {isFetching ? 'Refreshing...' : 'Change markets'}
           </Button>
         </div>
       </div>

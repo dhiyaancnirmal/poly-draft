@@ -202,7 +202,35 @@ function buildEventFromMarket(raw: any, market: PolymarketMarket, endTime: strin
 }
 
 // Fetch markets ending within 7 days and return top 20 by 24h volume
-export async function fetchDailyMarkets(targetDate?: Date): Promise<MarketSelection[]> {
+// Simple seeded shuffle (deterministic per seed)
+function shuffleWithSeed<T>(items: T[], seed?: string): T[] {
+  if (!items.length) return items;
+  let s = 0;
+  if (seed && seed.length) {
+    for (let i = 0; i < seed.length; i++) {
+      s = (s << 5) - s + seed.charCodeAt(i);
+      s |= 0;
+    }
+  } else {
+    s = Date.now();
+  }
+  // Mulberry32
+  const mulberry32 = (a: number) => () => {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  const rand = mulberry32(s);
+  const arr = [...items];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+export async function fetchDailyMarkets(targetDate?: Date, seed?: string): Promise<MarketSelection[]> {
   try {
     // Target window: from "now" through end of day tomorrow (inclusive)
     const windowStart = targetDate ? new Date(targetDate) : new Date();
@@ -368,30 +396,14 @@ export async function fetchDailyMarkets(targetDate?: Date): Promise<MarketSelect
 
     // Enforce minimum category diversity: aim for at least 2 per category when available,
     // then fill remaining slots by highest volume.
-    const grouped = new Map<string, Array<MarketSelection & { sortVolume: number; tokenIds: string[]; market: any }>>();
-    const sortByVolumeDesc = (a: { sortVolume: number }, b: { sortVolume: number }) =>
-      b.sortVolume - a.sortVolume;
-    const sortByEndThenVolume = (
-      a: MarketSelection & { sortVolume: number; tokenIds: string[] },
-      b: MarketSelection & { sortVolume: number; tokenIds: string[] },
-    ) => {
-      const endA = new Date(a.market.endDate).getTime();
-      const endB = new Date(b.market.endDate).getTime();
-      if (!Number.isNaN(endA) && !Number.isNaN(endB) && endA !== endB) {
-        return endA - endB; // earlier end times first
-      }
-      return sortByVolumeDesc(a, b);
-    };
+    // Shuffle to diversify composition per request/seed
+    const randomized = shuffleWithSeed(filtered, seed);
 
-    for (const item of filtered) {
+    const grouped = new Map<string, Array<MarketSelection & { sortVolume: number; tokenIds: string[]; market: any }>>();
+    for (const item of randomized) {
       const cat = item.category || 'other';
       if (!grouped.has(cat)) grouped.set(cat, []);
       grouped.get(cat)!.push(item);
-    }
-
-    // Sort each category by soonest end time, then volume
-    for (const [, items] of grouped) {
-      items.sort(sortByEndThenVolume);
     }
 
     const MAX_RESULTS = 50;
@@ -407,15 +419,14 @@ export async function fetchDailyMarkets(targetDate?: Date): Promise<MarketSelect
     if (selection.length < MAX_RESULTS) {
       const remainingPool = Array.from(grouped.values())
         .flatMap((items) => items)
-        .filter((item) => !selection.includes(item))
-        .sort(sortByEndThenVolume);
+        .filter((item) => !selection.includes(item));
 
       const slotsLeft = MAX_RESULTS - selection.length;
       selection.push(...remainingPool.slice(0, slotsLeft));
     }
 
+    // Keep output randomized but stable per seed
     const topMarkets = selection
-      .sort(sortByEndThenVolume)
       .slice(0, MAX_RESULTS)
       .map(({ sortVolume, tokenIds, ...rest }) => rest);
 

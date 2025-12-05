@@ -241,6 +241,7 @@ export interface MarketSelection {
   event: PolymarketEvent;
   market: PolymarketMarket;
   category: string;
+  categoryLabel?: string;
   confidence: number;
 }
 
@@ -286,6 +287,7 @@ export interface ExtendedMarketCardProps {
     volume24hr?: number;
     endTime: string;
     category?: string;
+    categoryLabel?: string;
     slug?: string;
     liquidity?: string;
     active?: boolean;

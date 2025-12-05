@@ -10,7 +10,7 @@ export const Skeleton: React.FC<SkeletonProps> = ({ className, children, ...prop
   return (
     <div
       className={cn(
-        'animate-pulse rounded-md bg-surface',
+        'animate-pulse rounded-xl bg-surface-highlight/50',
         className
       )}
       {...props}
@@ -30,7 +30,7 @@ export const SkeletonText: React.FC<{ lines?: number; className?: string }> = ({
         <Skeleton 
           key={i} 
           className={cn(
-            'h-4',
+            'h-4 rounded-lg',
             i === lines - 1 ? 'w-3/4' : 'w-full'
           )}
         />
@@ -41,18 +41,33 @@ export const SkeletonText: React.FC<{ lines?: number; className?: string }> = ({
 
 export const SkeletonCard: React.FC<{ className?: string }> = ({ className }) => {
   return (
-    <Skeleton className={cn('h-32 w-full rounded-card', className)} />
+    <Skeleton className={cn('h-32 w-full rounded-2xl', className)} />
   );
 };
 
 export const SkeletonButton: React.FC<{ className?: string }> = ({ className }) => {
   return (
-    <Skeleton className={cn('h-10 w-24 min-h-touch', className)} />
+    <Skeleton className={cn('h-11 w-24 min-h-touch rounded-xl', className)} />
   );
 };
 
 export const SkeletonInput: React.FC<{ className?: string }> = ({ className }) => {
   return (
-    <Skeleton className={cn('h-10 w-full min-h-touch', className)} />
+    <Skeleton className={cn('h-11 w-full min-h-touch rounded-xl', className)} />
+  );
+};
+
+export const SkeletonAvatar: React.FC<{ size?: 'sm' | 'md' | 'lg'; className?: string }> = ({ 
+  size = 'md',
+  className 
+}) => {
+  const sizes = {
+    sm: 'h-8 w-8',
+    md: 'h-10 w-10',
+    lg: 'h-12 w-12',
+  };
+  
+  return (
+    <Skeleton className={cn('rounded-full', sizes[size], className)} />
   );
 };

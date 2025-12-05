@@ -1,20 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { updateTransfer, getTransfer } from "@/lib/bridgekit/store";
+import type { TransferStatus, BridgeState } from "@/lib/bridgekit/store";
 
 type WebhookPayload = {
     transferId?: string;
-    status?: "pending" | "attesting" | "minted" | "failed";
-    txHash?: string;
+    status?: TransferStatus;
+    bridgeState?: BridgeState;
+    txHashFrom?: string;
+    txHashTo?: string;
     message?: string;
+    error?: string;
 };
 
+/**
+ * POST /api/bridge/webhook
+ * 
+ * Handle Circle/BridgeKit webhook notifications
+ * Updates transfer status in Supabase
+ */
 export async function POST(request: NextRequest) {
     try {
+        // Verify webhook secret
         const secret = process.env.WEBHOOK_SECRET;
         if (secret) {
             const provided = request.headers.get("x-webhook-secret");
             if (provided !== secret) {
+                console.warn("Webhook unauthorized: invalid secret");
                 return NextResponse.json({ error: "unauthorized" }, { status: 401 });
             }
         }
@@ -30,21 +42,44 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const record = getTransfer(payload.transferId);
+        // Get existing transfer
+        const record = await getTransfer(payload.transferId);
         if (!record) {
+            // Log but don't error - might be a stale webhook
+            console.warn(`Webhook for unknown transfer: ${payload.transferId}`);
             return NextResponse.json(
-                { error: "transfer not found" },
+                { error: "transfer not found", acknowledged: true },
                 { status: 404 }
             );
         }
 
-        const status = payload.status || "attesting";
-        const updated = updateTransfer(payload.transferId, {
-            status,
-            error: payload.message,
+        // Map webhook status to our status
+        const status = payload.status || payload.bridgeState || "attesting";
+        const bridgeState = payload.bridgeState || status;
+
+        // Update transfer
+        const updated = await updateTransfer(payload.transferId, {
+            status: status as TransferStatus,
+            bridgeState: bridgeState as BridgeState,
+            txHashFrom: payload.txHashFrom,
+            txHashTo: payload.txHashTo,
+            error: payload.error || payload.message,
         });
 
-        return NextResponse.json(updated);
+        // Log for audit trail
+        console.log(`Bridge webhook processed: ${payload.transferId}`, {
+            previousStatus: record.status,
+            newStatus: status,
+            bridgeState,
+            txHashTo: payload.txHashTo,
+        });
+
+        return NextResponse.json({
+            success: true,
+            transferId: payload.transferId,
+            status: updated?.status,
+            bridgeState: updated?.bridgeState,
+        });
     } catch (error) {
         console.error("Bridge webhook error", error);
         return NextResponse.json(
@@ -53,4 +88,3 @@ export async function POST(request: NextRequest) {
         );
     }
 }
-

@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
 
   const { data: scores, error: scoresError } = await supabase
     .from('scores')
-    .select('user_id, wallet_address, points, rank, is_winner, correct_picks, total_picks, updated_at')
+    .select('user_id, wallet_address, points, rank, is_winner, correct_picks, total_picks, updated_at, predix_settled_points, settlement_status, settlement_tx_hash, settlement_error')
     .eq('league_id', league.id)
     .order('points', { ascending: false })
 

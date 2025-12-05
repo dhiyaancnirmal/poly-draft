@@ -4,19 +4,22 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { Card, CardContent, CardHeader } from "@/components/ui/Card";
+import { Card, CardContent } from "@/components/ui/Card";
 import { calculateLeagueDates, calculateTotalBuyInCents, formatDateOnly, LeagueType } from "@/lib/leagueDates";
-import { createLeague } from "./actions";
+import { cn } from "@/lib/utils";
+import { Check } from "lucide-react";
+import { createLeague as createPaidLeague } from "./actions";
 
 type FormErrors = Partial<Record<string, string>>;
 
 const PRICE_PER_MARKET_CENTS = 100;
 
 const dailyPickOptions = [1, 2, 3];
-const weeklyPickOptions = Array.from({ length: 13 }, (_, i) => i + 2); // 2..14
+const weeklyPickOptions = Array.from({ length: 13 }, (_, i) => i + 2);
 
 export function CreateLeagueForm() {
   const router = useRouter();
+  const [mode, setMode] = useState<"sim" | "paid">("sim");
   const [type, setType] = useState<LeagueType>("daily");
   const [name, setName] = useState("");
   const [duration, setDuration] = useState<number>(7);
@@ -39,17 +42,13 @@ export function CreateLeagueForm() {
 
   const validate = () => {
     const nextErrors: FormErrors = {};
-    if (!name.trim()) nextErrors.name = "Name is required";
-    if (!Number.isInteger(duration) || duration <= 0) nextErrors.duration = "Duration must be greater than 0";
+    if (!name.trim()) nextErrors.name = "Required";
+    if (!Number.isInteger(duration) || duration <= 0) nextErrors.duration = "Must be > 0";
     if (!Number.isInteger(maxParticipants) || maxParticipants < 2 || maxParticipants > 12 || maxParticipants % 2 !== 0) {
-      nextErrors.max_participants = "Must be even and between 2-12";
+      nextErrors.max_participants = "Even, 2-12";
     }
     if (!Number.isInteger(picksPerPeriod) || picksPerPeriod <= 0) {
-      nextErrors.picks_per_period = "Select a valid value";
-    } else if (type === "daily" && !dailyPickOptions.includes(picksPerPeriod)) {
-      nextErrors.picks_per_period = "Daily picks must be 1, 2, or 3";
-    } else if (type === "weekly" && (picksPerPeriod < 2 || picksPerPeriod > 14)) {
-      nextErrors.picks_per_period = "Weekly picks must be between 2 and 14";
+      nextErrors.picks_per_period = "Invalid";
     }
     setErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
@@ -67,138 +66,159 @@ export function CreateLeagueForm() {
     formData.set("duration_periods", String(duration));
     formData.set("picks_per_period", String(picksPerPeriod));
     formData.set("max_participants", String(maxParticipants));
+    formData.set("mode", mode);
 
     startTransition(async () => {
-      const result = await createLeague(formData);
-      if (!result.success) {
-        setServerError(result.error);
-        return;
-      }
+      try {
+        if (mode === "sim") {
+          const res = await fetch("/api/leagues/simulated/create", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              name,
+              type,
+              durationPeriods: duration,
+              picksPerPeriod,
+              maxParticipants,
+              cadence: type,
+              marketsPerPeriod: picksPerPeriod,
+            }),
+          });
+          const data = await res.json();
+          if (!res.ok || data?.success === false) {
+            throw new Error(data?.error || "Failed to create league");
+          }
 
-      setJoinCode(result.joinCode);
-      router.push(`/app/leagues/${result.leagueId}`);
+          setJoinCode(data.league?.joinCode || data.league?.join_code);
+          router.push(`/app/leagues/${data.league?.id}`);
+          return;
+        }
+
+        const result = await createPaidLeague(formData);
+        if (!result.success) {
+          throw new Error(result.error);
+        }
+        setJoinCode(result.joinCode);
+        router.push(`/app/leagues/${result.leagueId}`);
+      } catch (err: any) {
+        setServerError(err?.message || "Failed to create league");
+      }
     });
   };
 
   const pickOptions = type === "daily" ? dailyPickOptions : weeklyPickOptions;
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-primary">Create league</p>
-          <h1 className="text-3xl font-bold text-foreground">Create League</h1>
+    <form className="space-y-4" onSubmit={handleSubmit}>
+      {/* Mode Toggle */}
+      <div className="flex gap-2 p-1 rounded-xl bg-accent/50">
+        {(["sim", "paid"] as const).map((option) => (
+          <button
+            key={option}
+            type="button"
+            onClick={() => setMode(option)}
+            className={cn(
+              "flex-1 rounded-lg px-3 py-2 text-sm font-medium",
+              mode === option ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
+            )}
+          >
+            {option === "sim" ? "Sim (free)" : "Paid"}
+          </button>
+        ))}
+      </div>
+
+      {/* Type Toggle */}
+      <div className="flex gap-2 p-1 rounded-xl bg-accent/50">
+        {(["daily", "weekly"] as LeagueType[]).map((option) => (
+          <button
+            key={option}
+            type="button"
+            onClick={() => setType(option)}
+            className={cn(
+              "flex-1 rounded-lg px-3 py-2 text-sm font-medium",
+              type === option ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
+            )}
+          >
+            {option === "daily" ? "Daily" : "Weekly"}
+          </button>
+        ))}
+      </div>
+
+      <Input
+        name="name"
+        label="League name"
+        placeholder="e.g., Alpha Signals"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        error={errors.name}
+      />
+
+      <div className="grid gap-3 grid-cols-2">
+        <Input
+          name="duration_periods"
+          label={type === "daily" ? "Days" : "Weeks"}
+          type="number"
+          min={1}
+          value={duration}
+          onChange={(e) => setDuration(Number(e.target.value))}
+          error={errors.duration}
+        />
+        
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-foreground">Picks/{type === "daily" ? "day" : "week"}</label>
+          <select
+            name="picks_per_period"
+            value={picksPerPeriod}
+            onChange={(e) => setPicksPerPeriod(Number(e.target.value))}
+            className="w-full h-11 rounded-xl border border-border/70 bg-card/50 px-3 text-sm text-foreground"
+          >
+            {pickOptions.map((val) => (
+              <option key={val} value={val}>{val}</option>
+            ))}
+          </select>
         </div>
       </div>
 
-      <Card className="border border-border/60 bg-surface/60 backdrop-blur">
-        <CardHeader className="border-b border-border/50">
-          <div className="flex gap-2 bg-muted/40 p-1 rounded-xl">
-            {(["daily", "weekly"] as LeagueType[]).map((option) => (
-              <button
-                key={option}
-                type="button"
-                onClick={() => setType(option)}
-                className={`flex-1 rounded-lg px-4 py-2 text-sm font-semibold transition-all ${
-                  type === option
-                    ? "bg-primary text-primary-foreground shadow-[0_12px_28px_-18px_rgba(49,114,255,0.45)]"
-                    : "text-foreground hover:bg-muted/70"
-                }`}
-              >
-                {option === "daily" ? "Daily" : "Weekly"}
-              </button>
-            ))}
+      <Input
+        name="max_participants"
+        label="Max players (even, 2-12)"
+        type="number"
+        min={2}
+        max={12}
+        step={2}
+        value={maxParticipants}
+        onChange={(e) => setMaxParticipants(Number(e.target.value))}
+        error={errors.max_participants}
+      />
+
+      {/* Summary */}
+      <Card variant="outline" className="bg-accent/20">
+        <CardContent className="p-3 text-sm space-y-1">
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Schedule</span>
+            <span className="text-foreground">{startDateText} → {endDateText}</span>
           </div>
-        </CardHeader>
-
-        <CardContent className="space-y-5 pt-6">
-          <form className="space-y-5" onSubmit={handleSubmit}>
-            <Input
-              name="name"
-              label="League name"
-              placeholder="e.g., Alpha Signals Syndicate"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              error={errors.name}
-            />
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Input
-                name="duration_periods"
-                label={type === "daily" ? "How many days?" : "How many weeks?"}
-                type="number"
-                min={1}
-                value={duration}
-                onChange={(e) => setDuration(Number(e.target.value))}
-                error={errors.duration}
-              />
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">
-                  {type === "daily" ? "Daily picks" : "Weekly picks"}
-                </label>
-                <select
-                  name="picks_per_period"
-                  value={picksPerPeriod}
-                  onChange={(e) => setPicksPerPeriod(Number(e.target.value))}
-                  className="w-full h-11 rounded-lg border border-border/70 bg-surface/70 px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-                >
-                  {pickOptions.map((val) => (
-                    <option key={val} value={val}>
-                      {val}
-                    </option>
-                  ))}
-                </select>
-                {errors.picks_per_period ? <p className="text-sm text-red-500">{errors.picks_per_period}</p> : null}
-              </div>
-            </div>
-
-            <Input
-              name="max_participants"
-              label="Max participants"
-              type="number"
-              min={2}
-              max={12}
-              step={2}
-              value={maxParticipants}
-              onChange={(e) => setMaxParticipants(Number(e.target.value))}
-              error={errors.max_participants}
-            />
-
-            <div className="rounded-lg border border-border/50 bg-muted/30 p-4 space-y-2 text-sm text-foreground">
-              <div className="flex items-center justify-between">
-                <span className="font-semibold">Schedule</span>
-                <span>
-                  {startDateText} → {endDateText}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="font-semibold">Buy-in per participant</span>
-                <span>${totalBuyInDollars}</span>
-              </div>
-              <p className="text-xs text-muted">
-                Price per market is fixed at $1. Total = picks per {type === "daily" ? "day" : "week"} × duration × $1.
-              </p>
-            </div>
-
-            {serverError ? <p className="text-sm text-red-500">{serverError}</p> : null}
-            {joinCode ? (
-              <div className="rounded-lg border border-green-500/60 bg-green-500/10 p-4 text-sm text-green-200">
-                League created! Share this join code: <span className="font-semibold">{joinCode}</span>
-              </div>
-            ) : null}
-
-            <div className="flex gap-3">
-              <Button type="submit" size="lg" loading={isPending} className="flex-1">
-                Create league
-              </Button>
-              <Button type="button" variant="outline" size="lg" className="flex-1" onClick={() => router.back()}>
-                Cancel
-              </Button>
-            </div>
-          </form>
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Buy-in</span>
+            <span className="text-foreground">${totalBuyInDollars}/player</span>
+          </div>
         </CardContent>
       </Card>
-    </div>
+
+      {serverError && (
+        <p className="text-sm text-error">{serverError}</p>
+      )}
+
+      {joinCode && (
+        <div className="flex items-center gap-2 text-sm text-success">
+          <Check className="h-4 w-4" />
+          Created! Code: {joinCode}
+        </div>
+      )}
+
+      <Button type="submit" size="lg" loading={isPending} className="w-full">
+        Create League
+      </Button>
+    </form>
   );
 }
-

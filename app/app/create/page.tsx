@@ -50,13 +50,13 @@ export default function CreateLeaguePage() {
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ duration: 0.28, ease: "easeOut" }}
             >
-                <Link href="/app/leagues" className="inline-flex items-center text-sm text-muted hover:text-text transition-colors">
+                <Link href="/app/leagues" className="inline-flex items-center text-sm text-muted hover:text-foreground transition-colors">
                     <ArrowLeft className="w-4 h-4 mr-1" />
                     Back to Leagues
                 </Link>
 
                 <div className="space-y-2">
-                    <h1 className="text-2xl font-bold text-text">Create New League</h1>
+                    <h1 className="text-2xl font-bold text-foreground">Create New League</h1>
                     <p className="text-sm text-muted">Set up your fantasy league and invite friends.</p>
                 </div>
 
@@ -77,7 +77,7 @@ export default function CreateLeaguePage() {
  
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <label className="text-sm font-medium text-text">Entry Fee</label>
+                                <label className="text-sm font-medium text-foreground">Entry Fee</label>
                                 <div className="relative">
                                     <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
                                     <Input
@@ -93,7 +93,7 @@ export default function CreateLeaguePage() {
                             </div>
  
                             <div className="space-y-2">
-                                <label className="text-sm font-medium text-text">Max Players</label>
+                                <label className="text-sm font-medium text-foreground">Max Players</label>
                                 <div className="relative">
                                     <Users className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
                                     <Input

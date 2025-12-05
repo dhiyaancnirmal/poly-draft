@@ -9,6 +9,7 @@ import {
     getTransferByIdempotency,
     updateTransfer,
 } from "@/lib/bridgekit/store";
+import { getOrCreateUserProxy } from "@/lib/bridgekit/proxy";
 
 const MAX_AMOUNT_USDC = 1000;
 const RATE_LIMIT_WINDOW_MS = 60_000;
@@ -70,6 +71,8 @@ export async function POST(request: NextRequest) {
         const amount = payload?.amount;
         const idempotencyKey: string | undefined =
             payload?.idempotencyKey || payload?.transferId;
+        const userId: string | undefined = payload?.userId;
+        const walletAddress: string | undefined = payload?.walletAddress;
 
         if (!amount || typeof amount !== "string") {
             return badRequest("amount (string) is required");
@@ -83,26 +86,53 @@ export async function POST(request: NextRequest) {
             return badRequest(`amount exceeds max of ${MAX_AMOUNT_USDC} USDC`);
         }
 
-        const fallbackDestination = process.env.BRIDGEKIT_POLYGON_DESTINATION;
-        const destinationAddress =
-            payload?.destinationAddress || fallbackDestination;
-        if (!destinationAddress) {
-            return badRequest("destination address is required for this phase");
-        }
-
+        // Check for existing transfer by idempotency key
         if (idempotencyKey) {
-            const existing = getTransferByIdempotency(idempotencyKey);
+            const existing = await getTransferByIdempotency(idempotencyKey);
             if (existing) {
                 return NextResponse.json(existing);
             }
         }
 
-        const record = createTransferRecord({
+        // Determine destination address
+        let destinationAddress = payload?.destinationAddress;
+
+        // If userId provided, try to get/create their proxy
+        if (!destinationAddress && userId && walletAddress) {
+            try {
+                const proxy = await getOrCreateUserProxy(userId, walletAddress);
+                if (proxy.polygonProxyAddress) {
+                    destinationAddress = proxy.polygonProxyAddress;
+                }
+            } catch (error) {
+                console.warn("Failed to get user proxy:", error);
+            }
+        }
+
+        // Fallback to env-configured destination
+        if (!destinationAddress) {
+            destinationAddress = process.env.BRIDGEKIT_POLYGON_DESTINATION;
+        }
+
+        if (!destinationAddress) {
+            return badRequest("destination address is required for this phase");
+        }
+
+        // Determine chain names
+        const fromChain = bridgeChains.from.name.toLowerCase().replace(" ", "-");
+        const toChain = bridgeChains.to.name.toLowerCase().replace(" ", "-");
+
+        // Create transfer record in Supabase
+        const record = await createTransferRecord({
             amount,
             destinationAddress,
-            userId: payload?.userId ?? null,
+            userId: userId ?? null,
+            walletAddress: walletAddress || destinationAddress,
             idempotencyKey,
             status: "pending",
+            token: "USDC",
+            fromChain,
+            toChain,
         });
 
         // Fire-and-forget bridge execution; status updates will be reflected in the store
@@ -111,7 +141,7 @@ export async function POST(request: NextRequest) {
             destinationAddress,
             idempotencyKey: record.id,
         })
-            .then((result) => {
+            .then(async (result) => {
                 const nextStatus =
                     result.state === "success"
                         ? ("minted" as const)
@@ -119,15 +149,15 @@ export async function POST(request: NextRequest) {
                             ? ("attesting" as const)
                             : ("failed" as const);
 
-                updateTransfer(record.id, {
+                await updateTransfer(record.id, {
                     status: nextStatus,
-                    bridgeState: result.state,
+                    bridgeState: nextStatus,
                     bridgeResult: result,
                 });
             })
-            .catch((error: unknown) => {
+            .catch(async (error: unknown) => {
                 console.error("Bridge initiation failed", error);
-                updateTransfer(record.id, {
+                await updateTransfer(record.id, {
                     status: "failed",
                     bridgeState: "error",
                     error:
@@ -149,4 +179,3 @@ export async function POST(request: NextRequest) {
         );
     }
 }
-

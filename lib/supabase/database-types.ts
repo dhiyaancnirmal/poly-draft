@@ -543,6 +543,10 @@ export interface Database {
           wallet_address: string | null
           fid: number | null
           signer_address: string | null
+          polygon_proxy_address: string | null
+          proxy_status: 'pending' | 'ready' | 'error' | null
+          last_checked_at: string | null
+          proxy_error: string | null
           created_at: string
           updated_at: string
         }
@@ -552,6 +556,10 @@ export interface Database {
           wallet_address?: string | null
           fid?: number | null
           signer_address?: string | null
+          polygon_proxy_address?: string | null
+          proxy_status?: 'pending' | 'ready' | 'error' | null
+          last_checked_at?: string | null
+          proxy_error?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -561,6 +569,10 @@ export interface Database {
           wallet_address?: string | null
           fid?: number | null
           signer_address?: string | null
+          polygon_proxy_address?: string | null
+          proxy_status?: 'pending' | 'ready' | 'error' | null
+          last_checked_at?: string | null
+          proxy_error?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -575,6 +587,15 @@ export interface Database {
           status: 'pending' | 'completed' | 'failed' | null
           tx_hash: string | null
           chain: string | null
+          idempotency_key: string | null
+          token: string | null
+          from_chain: string | null
+          to_chain: string | null
+          dest_address: string | null
+          bridge_state: 'pending' | 'attesting' | 'minted' | 'failed' | 'error' | null
+          tx_hash_from: string | null
+          tx_hash_to: string | null
+          bridge_result: Json | null
           created_at: string
           updated_at: string
         }
@@ -587,6 +608,15 @@ export interface Database {
           status?: 'pending' | 'completed' | 'failed' | null
           tx_hash?: string | null
           chain?: string | null
+          idempotency_key?: string | null
+          token?: string | null
+          from_chain?: string | null
+          to_chain?: string | null
+          dest_address?: string | null
+          bridge_state?: 'pending' | 'attesting' | 'minted' | 'failed' | 'error' | null
+          tx_hash_from?: string | null
+          tx_hash_to?: string | null
+          bridge_result?: Json | null
           created_at?: string
           updated_at?: string
         }
@@ -599,8 +629,99 @@ export interface Database {
           status?: 'pending' | 'completed' | 'failed' | null
           tx_hash?: string | null
           chain?: string | null
+          idempotency_key?: string | null
+          token?: string | null
+          from_chain?: string | null
+          to_chain?: string | null
+          dest_address?: string | null
+          bridge_state?: 'pending' | 'attesting' | 'minted' | 'failed' | 'error' | null
+          tx_hash_from?: string | null
+          tx_hash_to?: string | null
+          bridge_result?: Json | null
           created_at?: string
           updated_at?: string
+        }
+      }
+      paid_leagues: {
+        Row: {
+          id: string
+          league_id: string | null
+          on_chain_league_id: string
+          buy_in_cents: number
+          buy_in_usdc: string
+          max_players: number
+          pool_usdc: string
+          contract_address: string
+          chain: string
+          status: 'open' | 'active' | 'settled' | 'cancelled' | null
+          settlement_tx_hash: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          league_id?: string | null
+          on_chain_league_id: string
+          buy_in_cents: number
+          buy_in_usdc: string | number
+          max_players: number
+          pool_usdc?: string | number
+          contract_address: string
+          chain: string
+          status?: 'open' | 'active' | 'settled' | 'cancelled' | null
+          settlement_tx_hash?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          league_id?: string | null
+          on_chain_league_id?: string
+          buy_in_cents?: number
+          buy_in_usdc?: string | number
+          max_players?: number
+          pool_usdc?: string | number
+          contract_address?: string
+          chain?: string
+          status?: 'open' | 'active' | 'settled' | 'cancelled' | null
+          settlement_tx_hash?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      paid_league_participants: {
+        Row: {
+          id: string
+          paid_league_id: string | null
+          user_id: string | null
+          wallet_address: string
+          proxy_address: string | null
+          join_tx_hash: string | null
+          payout_usdc: string | null
+          payout_tx_hash: string | null
+          joined_at: string
+        }
+        Insert: {
+          id?: string
+          paid_league_id?: string | null
+          user_id?: string | null
+          wallet_address: string
+          proxy_address?: string | null
+          join_tx_hash?: string | null
+          payout_usdc?: string | number | null
+          payout_tx_hash?: string | null
+          joined_at?: string
+        }
+        Update: {
+          id?: string
+          paid_league_id?: string | null
+          user_id?: string | null
+          wallet_address?: string
+          proxy_address?: string | null
+          join_tx_hash?: string | null
+          payout_usdc?: string | number | null
+          payout_tx_hash?: string | null
+          joined_at?: string
         }
       }
       pick_swap_logs: {
@@ -880,6 +1001,14 @@ export type BridgeTransfer = Database['public']['Tables']['bridge_transfers']['R
 export type BridgeTransferInsert = Database['public']['Tables']['bridge_transfers']['Insert']
 export type BridgeTransferUpdate = Database['public']['Tables']['bridge_transfers']['Update']
 
+export type PaidLeague = Database['public']['Tables']['paid_leagues']['Row']
+export type PaidLeagueInsert = Database['public']['Tables']['paid_leagues']['Insert']
+export type PaidLeagueUpdate = Database['public']['Tables']['paid_leagues']['Update']
+
+export type PaidLeagueParticipant = Database['public']['Tables']['paid_league_participants']['Row']
+export type PaidLeagueParticipantInsert = Database['public']['Tables']['paid_league_participants']['Insert']
+export type PaidLeagueParticipantUpdate = Database['public']['Tables']['paid_league_participants']['Update']
+
 export type PickSwapLog = Database['public']['Tables']['pick_swap_logs']['Row']
 export type PickSwapLogInsert = Database['public']['Tables']['pick_swap_logs']['Insert']
 export type PickSwapLogUpdate = Database['public']['Tables']['pick_swap_logs']['Update']
@@ -908,3 +1037,6 @@ export type ResolutionSource = MarketResolution['resolution_source']
 export type SwapAction = PickSwapLog['action']
 export type BridgeDirection = BridgeTransfer['direction']
 export type BridgeStatus = BridgeTransfer['status']
+export type BridgeState = BridgeTransfer['bridge_state']
+export type PaidLeagueStatus = PaidLeague['status']
+export type ProxyStatus = Database['public']['Tables']['user_proxies']['Row']['proxy_status']

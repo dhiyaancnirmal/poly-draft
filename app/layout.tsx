@@ -57,7 +57,7 @@ export default function RootLayout({
 }>) {
   return (
     <RootProvider>
-      <html lang="en">
+      <html lang="en" data-theme="dark">
         <body className={`${inter.variable} ${sourceCodePro.variable}`}>
           <SafeArea>
             <PageTransition>{children}</PageTransition>

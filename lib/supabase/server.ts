@@ -8,7 +8,12 @@ export async function createClient() {
   const supabaseSecretKey = process.env.SUPABASE_SECRET_KEY
 
   if (!supabaseUrl || !supabaseSecretKey) {
-    throw new Error('Missing Supabase environment variables')
+    const missing = []
+    if (!supabaseUrl) missing.push('NEXT_PUBLIC_SUPABASE_URL')
+    if (!supabaseSecretKey) missing.push('SUPABASE_SECRET_KEY')
+    const message = `Missing Supabase environment variables: ${missing.join(', ')}`
+    console.error(message)
+    throw new Error(message)
   }
 
   try {
@@ -41,7 +46,9 @@ export async function createClient() {
     )
   } catch (error) {
     console.error('Failed to create Supabase server client:', error)
-    throw new Error('Supabase server client initialization failed')
+    const message =
+      error instanceof Error ? error.message : 'Supabase server client initialization failed'
+    throw new Error(`SUPABASE_INIT_FAILED: ${message}`)
   }
 }
 

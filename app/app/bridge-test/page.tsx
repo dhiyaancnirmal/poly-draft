@@ -97,7 +97,7 @@ export default function BridgeTestPage() {
 
     return (
         <AppLayout title="Bridge Test">
-            <div className="space-y-4">
+            <div className="p-4 space-y-4">
                 <Card className="space-y-4 p-4">
                     <div className="space-y-1">
                         <h1 className="text-xl font-semibold text-foreground">

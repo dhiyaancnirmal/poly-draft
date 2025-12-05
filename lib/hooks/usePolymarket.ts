@@ -78,11 +78,11 @@ export function useMarketSelection() {
         side: selectedSide,
         timestamp: Date.now(),
       };
-      
+
       setPicks((prev) => [...prev, newPick]);
       setSelectedMarket(null);
       setSelectedSide(null);
-      
+
       return newPick;
     }
     return null;
@@ -203,8 +203,8 @@ export function usePolymarketLivePrices(markets?: MarketSelection[]) {
     // initial fetch
     fetchPrices();
 
-    // poll every 10s
-    const interval = setInterval(fetchPrices, 10000);
+    // poll every 5s
+    const interval = setInterval(fetchPrices, 5000);
 
     return () => {
       mounted = false;
@@ -251,7 +251,7 @@ export function useMarketFilter(markets: MarketSelection[]) {
         const query = searchQuery.toLowerCase();
         const title = selection.event.title.toLowerCase();
         const description = selection.event.description?.toLowerCase() || '';
-        
+
         if (!title.includes(query) && !description.includes(query)) {
           return false;
         }

@@ -3,6 +3,7 @@
 Source docs reviewed:
 - `PROJECT_GUIDE.md` (fantasy league mini app outline + tech stack)
 - Repository code as of this report
+- Legacy integration notes (BridgeKit v1, CLOB/RTDS, Polymarket API reference) are archived in `docs/_archive/` for reference.
 
 ## What’s Built (mapped to the guide intent)
 - **Mobile-first Next.js 16 app router** with Tailwind styling, Inter/Source Code Pro fonts, and SafeArea/PageTransition wrappers; OnchainKit provider configured for Base mini app flows. (see `app/layout.tsx`, `app/rootProvider.tsx`)

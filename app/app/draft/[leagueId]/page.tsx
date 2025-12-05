@@ -1,125 +1,73 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
 import { useParams } from "next/navigation";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { MarketCard } from "@/components/features";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
+import { Card, CardContent } from "@/components/ui/Card";
 import { SkeletonText } from "@/components/ui/Skeleton";
 import { useDailyMarkets, useMarketSelection, useDraftTimer, usePolymarketLivePrices } from "@/lib/hooks/usePolymarket";
 import { useDraftSync } from "@/lib/hooks/useDraftSync";
 import { useAuth } from "@/lib/hooks";
+import { cn } from "@/lib/utils";
+import { Clock, Check, RefreshCw, Zap } from "lucide-react";
 
 export default function DraftRoomPage() {
   const params = useParams();
   const leagueId = params.leagueId as string;
   const { user } = useAuth();
-  const [predixLoading, setPredixLoading] = useState(true);
-  const [predixError, setPredixError] = useState<string | null>(null);
-  const [predixData, setPredixData] = useState<any>(null);
 
-  // Real-time draft sync (NEW)
   const { picks, members, currentTurn, isConnected, makePick } = useDraftSync(leagueId);
 
-  // Market data (from server proxy)
   const [shuffleSeed, setShuffleSeed] = useState(0);
   const { data: marketSelections, isLoading, error, refetch, isFetching } = useDailyMarkets(undefined, shuffleSeed.toString());
   const { livePrices, status: liveStatus } = usePolymarketLivePrices(marketSelections);
 
-  // Local selection state
   const { selectedMarket, selectedSide, selectMarket } = useMarketSelection();
-
-  // Timer
   const { timeLeft, formatTime, startTimer } = useDraftTimer(45);
 
-  // Filter out already-picked markets (NEW)
   const pickedMarketIds = new Set(picks.map(p => p.market_id_text));
   const availableMarkets = marketSelections?.filter(
     selection => !pickedMarketIds.has(selection.market.id)
   ) || [];
 
-  // Determine if it's user's turn (NEW)
   const isMyTurn = user?.id === currentTurn;
-  const currentMember = members.find(m => m.user_id === currentTurn);
 
-  // Start timer when markets are loaded and it's user's turn
   useEffect(() => {
     if (!isLoading && marketSelections && marketSelections.length > 0 && isMyTurn) {
       startTimer();
     }
   }, [isLoading, marketSelections, startTimer, isMyTurn]);
 
-  useEffect(() => {
-    let mounted = true;
-    setPredixLoading(true);
-    setPredixError(null);
-    fetch(`/api/leagues/simulated/predix?leagueId=${leagueId}`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (!mounted) return;
-        if (!data?.success) {
-          setPredixError(data?.error || "Unable to load Predix data");
-        } else {
-          setPredixData(data);
-        }
-      })
-      .catch((err) => {
-        if (!mounted) return;
-        setPredixError(err?.message || "Unable to load Predix data");
-      })
-      .finally(() => {
-        if (mounted) setPredixLoading(false);
-      });
-    return () => {
-      mounted = false;
-    };
-  }, [leagueId]);
-
   const handleConfirmPick = async () => {
-    if (!selectedMarket || !selectedSide || !isMyTurn) {
-      alert('Not your turn or no selection made');
-      return;
-    }
+    if (!selectedMarket || !selectedSide || !isMyTurn) return;
+    const selection = marketSelections?.find((s) => s.market.id === selectedMarket);
+    const prices = selection?.market.outcomePrices?.split(',').map(Number) || [];
+    const yesPrice = selection?.market.bestBuyYesPrice ?? prices[0] ?? 0.5;
+    const noPrice = selection?.market.bestBuyNoPrice ?? prices[1] ?? (1 - yesPrice);
+    const price = selectedSide === "YES" ? yesPrice : noPrice;
 
     try {
-      await makePick(selectedMarket, selectedSide);
-      // Pick saved to Supabase, real-time subscription will update UI
-      selectMarket('', 'YES'); // Clear selection
+      await makePick(selectedMarket, selectedSide, {
+        price,
+        marketTitle: selection?.market.question,
+        endTime: selection?.event.endDate,
+      });
+      selectMarket('', 'YES');
     } catch (error: any) {
-      console.error('Failed to make pick:', error);
       alert(error.message || 'Failed to make pick');
     }
   };
 
   if (isLoading) {
     return (
-      <AppLayout title="Draft Room">
-        <div className="p-4 space-y-6">
-          {/* Draft Status Skeleton */}
-          <div className="text-center space-y-2">
-            <SkeletonText lines={1} className="w-32 mx-auto" />
-            <SkeletonText lines={1} className="w-48 mx-auto" />
-          </div>
-
-          {/* Draft Board Skeleton - Horizontal */}
-          <div className="space-y-3">
-            <SkeletonText lines={1} className="w-24" />
-            <div className="flex gap-3 justify-center items-center">
-              <div className="flex-1 max-w-[120px] aspect-square bg-surface rounded-lg animate-pulse" />
-              <div className="flex-1 max-w-[140px] aspect-square bg-surface rounded-lg animate-pulse" />
-              <div className="flex-1 max-w-[120px] aspect-square bg-surface rounded-lg animate-pulse" />
-            </div>
-          </div>
-
-          {/* Available Markets Skeleton */}
-          <div className="space-y-3">
-            <SkeletonText lines={1} className="w-32" />
-            <MarketCard loading />
-            <MarketCard loading />
-            <MarketCard loading />
-          </div>
+      <AppLayout title="Draft" showInvitesBadge={false}>
+        <div className="p-4 space-y-4">
+          <Card><CardContent className="py-6"><SkeletonText lines={2} /></CardContent></Card>
+          <MarketCard loading />
+          <MarketCard loading />
         </div>
       </AppLayout>
     );
@@ -127,14 +75,14 @@ export default function DraftRoomPage() {
 
   if (error) {
     return (
-      <AppLayout title="Draft Room">
-        <div className="p-4 space-y-6">
-          <div className="text-center">
-            <p className="text-error">Error loading markets: {error.message}</p>
-            <Button onClick={() => window.location.reload()} className="mt-4">
-              Retry
-            </Button>
-          </div>
+      <AppLayout title="Draft" showInvitesBadge={false}>
+        <div className="p-4">
+          <Card>
+            <CardContent className="py-8 text-center">
+              <p className="text-error mb-4">{error.message}</p>
+              <Button onClick={() => window.location.reload()}>Retry</Button>
+            </CardContent>
+          </Card>
         </div>
       </AppLayout>
     );
@@ -142,284 +90,111 @@ export default function DraftRoomPage() {
 
   if (!marketSelections || marketSelections.length === 0) {
     return (
-      <AppLayout title="Draft Room">
-        <div className="p-4 space-y-6">
-          <div className="text-center">
-            <p className="text-muted">No markets available for today. Check back later!</p>
-          </div>
+      <AppLayout title="Draft" showInvitesBadge={false}>
+        <div className="p-4">
+          <Card>
+            <CardContent className="py-8 text-center">
+              <p className="text-muted-foreground">No markets available</p>
+            </CardContent>
+          </Card>
         </div>
       </AppLayout>
     );
   }
 
   return (
-    <AppLayout title="Draft Room">
-      <div className="p-4 space-y-6">
-        {/* Connection Status */}
-        {!isConnected && (
-          <div className="flex justify-center">
-            <Badge variant="warning">Reconnecting...</Badge>
-          </div>
-        )}
-
-        {/* Predix balance + transparency */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-medium text-muted">Predix balance & transparency</h3>
-            {predixData?.onchain?.explorerBaseUrl && predixData?.onchain?.tokenAddress ? (
-              <Link
-                href={`${predixData.onchain.explorerBaseUrl}/token/${predixData.onchain.tokenAddress}`}
-                target="_blank"
-                className="text-xs text-primary hover:underline"
-              >
-                View token
-              </Link>
-            ) : null}
-          </div>
-          <div className="rounded-lg border border-border/70 bg-surface/80 p-3 space-y-2">
-            {predixLoading ? (
-              <SkeletonText lines={2} className="w-48" />
-            ) : predixError ? (
-              <p className="text-sm text-error">{predixError}</p>
-            ) : (
-              <>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs text-muted">Balance</p>
-                    <p className="text-lg font-semibold text-foreground">
-                      {predixData?.onchain?.balance ?? "—"} PREDIX
-                    </p>
-                  </div>
-                  {predixData?.onchain?.explorerBaseUrl && predixData?.onchain?.managerAddress ? (
-                    <Link
-                      href={`${predixData.onchain.explorerBaseUrl}/address/${predixData.onchain.managerAddress}`}
-                      target="_blank"
-                      className="text-xs text-primary hover:underline"
-                    >
-                      Manager
-                    </Link>
-                  ) : null}
-                </div>
-                <div className="flex items-center gap-2 text-xs text-muted">
-                  <span>Settlement:</span>
-                  <Badge variant="outline">
-                    {predixData?.settlement?.settlement_status ?? "pending"}
-                  </Badge>
-                  {predixData?.settlement?.settlement_tx_hash && predixData?.onchain?.explorerBaseUrl ? (
-                    <Link
-                      href={`${predixData.onchain.explorerBaseUrl}/tx/${predixData.settlement.settlement_tx_hash}`}
-                      target="_blank"
-                      className="text-primary hover:underline"
-                    >
-                      tx
-                    </Link>
-                  ) : null}
-                </div>
-                <div className="space-y-1">
-                  <p className="text-xs font-semibold text-muted">Recent events</p>
-                  {predixData?.mergedLogs?.length ? (
-                    <div className="space-y-1 max-h-40 overflow-y-auto">
-                      {predixData.mergedLogs.slice(0, 6).map((log: any) => (
-                        <div
-                          key={log.id}
-                          className="rounded-md border border-border/60 bg-surface/60 px-2 py-1 text-xs flex items-center justify-between gap-2"
-                        >
-                          <div className="flex items-center gap-2">
-                            <Badge variant="outline">{log.action}</Badge>
-                            <span className="text-muted">{new Date(log.created_at).toLocaleString()}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Badge variant={log.tx_status === "failed" ? "error" : "outline"}>
-                              {log.tx_status ?? "pending"}
-                            </Badge>
-                            {log.tx_hash && predixData?.onchain?.explorerBaseUrl ? (
-                              <Link
-                                href={`${predixData.onchain.explorerBaseUrl}/tx/${log.tx_hash}`}
-                                target="_blank"
-                                className="text-primary hover:underline"
-                              >
-                                tx
-                              </Link>
-                            ) : null}
-                            {log.onchain ? (
-                              <Badge variant="success">On-chain</Badge>
-                            ) : null}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-xs text-muted">No recent events yet.</p>
-                  )}
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-
-        {/* Draft Status */}
-        <div className="text-center space-y-2">
-          <div className="flex items-center justify-center space-x-4">
+    <AppLayout title="Draft" showInvitesBadge={false}>
+      {/* Sticky Draft Status Header */}
+      <div className="sticky top-14 z-30 bg-background border-b border-border/40 px-4 py-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
             {isMyTurn ? (
               <Badge variant="success">
-                🎯 Your Pick #{picks.length + 1}
+                <Zap className="h-3.5 w-3.5 mr-1" />
+                Pick #{picks.length + 1}
               </Badge>
             ) : (
               <Badge variant="outline">
-                ⏳ Waiting
+                <Clock className="h-3.5 w-3.5 mr-1" />
+                Waiting
               </Badge>
             )}
-            <div className="text-2xl font-bold text-text">
-              {formatTime()}
-            </div>
+            {!isConnected && <Badge variant="warning">Offline</Badge>}
           </div>
-          {isMyTurn ? (
-            <p className="text-sm text-muted">
-              Make your selection before time runs out
-            </p>
-          ) : (
-            <p className="text-sm text-muted">
-              Waiting for {currentMember?.user_id?.slice(0, 8) || 'Player'}&apos;s pick...
-            </p>
-          )}
+          <span className={cn(
+            "text-2xl font-bold tabular-nums",
+            timeLeft <= 10 ? "text-error" : "text-foreground"
+          )}>
+            {formatTime()}
+          </span>
         </div>
+      </div>
 
-        {/* Draft Board - Horizontal Carousel */}
-        <div className="space-y-3">
-          <h3 className="text-sm font-medium text-muted">Draft Board</h3>
-          <div className="flex gap-3 justify-center items-center">
-            {(() => {
-              const currentPickIndex = picks.length;
-              const previousPick = picks[currentPickIndex - 1];
-              const nextPickIndex = currentPickIndex + 1;
-
-              return (
-                <>
-                  {/* Previous Pick */}
-                  <div className="flex-1 max-w-[120px]">
-                    {previousPick ? (
-                      <div className="aspect-square rounded-lg border-2 border-success/50 bg-success/10 p-3 flex flex-col items-center justify-center">
-                        <div className="text-muted text-xs mb-1">#{currentPickIndex}</div>
-                        <div className="text-center">
-                          <div className="font-medium text-sm">{previousPick.outcome_side}</div>
-                          <div className="text-muted text-xs mt-1">{previousPick.market_id_text.slice(0, 8)}...</div>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="aspect-square rounded-lg border-2 border-surface/20 bg-surface/10 p-3 flex items-center justify-center">
-                        <div className="text-muted text-xs">No previous</div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Current Pick */}
-                  <div className="flex-1 max-w-[140px]">
-                    <div className="aspect-square rounded-lg border-2 border-primary bg-primary/20 p-4 flex flex-col items-center justify-center animate-pulse">
-                      <div className="text-primary text-xs mb-2 font-bold">CURRENT</div>
-                      <div className="text-2xl font-bold text-text">#{currentPickIndex + 1}</div>
-                      <div className="text-muted text-xs mt-2">
-                        {isMyTurn ? 'Your Turn' : 'Waiting...'}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Next Pick */}
-                  <div className="flex-1 max-w-[120px]">
-                    <div className="aspect-square rounded-lg border-2 border-surface/20 bg-surface/10 p-3 flex flex-col items-center justify-center">
-                      <div className="text-muted text-xs mb-1">#{nextPickIndex + 1}</div>
-                      <div className="text-muted text-xs">Up Next</div>
-                    </div>
-                  </div>
-                </>
-              );
-            })()}
-          </div>
-        </div>
-
-        {/* Available Markets */}
-        <div className="space-y-3">
-          <h3 className="text-sm font-medium text-muted">
-            Available Markets ({availableMarkets.length})
-          </h3>
-          {availableMarkets.length === 0 ? (
-            <div className="text-center text-muted py-8">
-              <p>All markets have been picked!</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-          {availableMarkets.map((selection) => {
-            const prices = selection.market.outcomePrices
-              ? selection.market.outcomePrices.split(',').map(Number)
-              : [];
-            const yesFallback =
-              selection.market.bestBuyYesPrice ??
-              (!Number.isNaN(Number(selection.market.bestBid)) ? Number(selection.market.bestBid) : undefined) ??
-              (!Number.isNaN(Number(selection.market.lastTradePrice)) ? Number(selection.market.lastTradePrice) : undefined) ??
-              prices[0];
-            const yesPrice = typeof yesFallback === 'number' ? yesFallback : prices[0] ?? 0.5;
-            const noPrice =
-              selection.market.bestBuyNoPrice ??
-              prices[1] ??
-              (1 - yesPrice);
+      <div className="p-4 space-y-4 pb-32">
+        {/* Markets */}
+        {availableMarkets.length === 0 ? (
+          <Card>
+            <CardContent className="py-8 text-center">
+              <Check className="h-8 w-8 mx-auto text-success mb-2" />
+              <p className="text-foreground font-medium">All markets picked</p>
+            </CardContent>
+          </Card>
+        ) : (
+          availableMarkets.map((selection) => {
+            const prices = selection.market.outcomePrices?.split(',').map(Number) || [];
+            const yesPrice = selection.market.bestBuyYesPrice ?? prices[0] ?? 0.5;
+            const noPrice = selection.market.bestBuyNoPrice ?? prices[1] ?? (1 - yesPrice);
 
             return (
-              <div key={selection.event.id} className="space-y-2">
-                <MarketCard
-                  market={{
-                    id: selection.market.id,
-                    question: selection.market.question,
-                    description: selection.event.description,
-                    outcomes: selection.market.outcomes.split(','),
-                    outcomePrices: [yesPrice, noPrice],
-                    yesPrice,
-                    noPrice,
-                    volume: selection.market.volume,
-                    volume24hr: selection.event.volume24hr,
-                    endTime: selection.event.endDate,
-                    category: selection.category,
-                    slug: selection.market.slug,
-                    liquidity: selection.market.liquidity,
-                    active: selection.market.active,
-                    clobTokenIds: selection.market.clobTokenIds?.split(',').map((token) => token.trim()),
-                  }}
-                  onSelect={selectMarket}
-                  selectedSide={selectedSide}
-                  selectedMarket={selectedMarket}
-                  livePrice={livePrices[selection.market.id]}
-                  isLive={liveStatus === 'connected'}
-                />
-              </div>
+              <MarketCard
+                key={selection.event.id}
+                market={{
+                  id: selection.market.id,
+                  question: selection.market.question,
+                  description: selection.event.description,
+                  outcomes: selection.market.outcomes.split(','),
+                  outcomePrices: [yesPrice, noPrice],
+                  yesPrice,
+                  noPrice,
+                  volume: selection.market.volume,
+                  volume24hr: selection.event.volume24hr,
+                  endTime: selection.event.endDate,
+                category: selection.category,
+                categoryLabel: selection.categoryLabel,
+                  slug: selection.market.slug,
+                  liquidity: selection.market.liquidity,
+                  active: selection.market.active,
+                  clobTokenIds: selection.market.clobTokenIds?.split(',').map((t) => t.trim()),
+                }}
+                onSelect={selectMarket}
+                selectedSide={selectedSide}
+                selectedMarket={selectedMarket}
+                livePrice={livePrices[selection.market.id]}
+                isLive={liveStatus === 'connected'}
+              />
             );
-          })}
-            </div>
-          )}
+          })
+        )}
 
-          {/* Submit Pick Button */}
+        {/* Actions */}
+        <div className="space-y-3">
           <Button
             size="lg"
             className="w-full"
             disabled={!selectedMarket || !selectedSide || !isMyTurn}
             onClick={handleConfirmPick}
           >
-            {!isMyTurn
-              ? "Not your turn"
-              : selectedMarket && selectedSide
-                ? `Confirm: ${selectedSide} for selected market`
-                : "Select a market and side"
-            }
+            {!isMyTurn ? "Not your turn" : selectedMarket ? `Confirm ${selectedSide}` : "Select a market"}
           </Button>
-
           <Button
             variant="outline"
             size="lg"
             className="w-full"
-            onClick={() => {
-              setShuffleSeed((s) => s + 1);
-              refetch();
-            }}
+            onClick={() => { setShuffleSeed(s => s + 1); refetch(); }}
             disabled={isFetching}
           >
-            {isFetching ? 'Refreshing...' : 'Change markets'}
+            <RefreshCw className={cn("h-4 w-4 mr-2", isFetching && "animate-spin")} />
+            Refresh Markets
           </Button>
         </div>
       </div>

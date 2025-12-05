@@ -16,33 +16,44 @@ export function useTheme() {
     document.documentElement.style.colorScheme = value === "dark" ? "dark" : "light";
   }, []);
 
+  const resolveChoice = useCallback((choice: ThemeChoice) => {
+    if (choice === "system") {
+      if (typeof window === "undefined") return "dark";
+      const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      return prefersDark ? "dark" : "light";
+    }
+    return choice;
+  }, []);
+
   const applyTheme = useCallback(
-    (_next: ThemeChoice) => {
-      // Force dark mode; keep API stable.
-      setThemeState("dark");
-      setDocumentTheme("dark");
-      setResolvedTheme("dark");
-      window.localStorage.setItem(STORAGE_KEY, "dark");
+    (next: ThemeChoice) => {
+      const applied = resolveChoice(next);
+      setThemeState(next);
+      setResolvedTheme(applied);
+      setDocumentTheme(applied);
+      window.localStorage.setItem(STORAGE_KEY, next);
     },
-    [setDocumentTheme]
+    [resolveChoice, setDocumentTheme]
   );
 
   useEffect(() => {
-    // Force default to dark on mount
-    setThemeState("dark");
-    setDocumentTheme("dark");
-    setResolvedTheme("dark");
-    window.localStorage.setItem(STORAGE_KEY, "dark");
+    const stored = window.localStorage.getItem(STORAGE_KEY) as ThemeChoice | null;
+    const initial = stored === "light" || stored === "dark" || stored === "system" ? stored : "dark";
+    applyTheme(initial);
     setHydrated(true);
-  }, [setDocumentTheme]);
+  }, [applyTheme]);
 
   useEffect(() => {
-    if (!hydrated) return;
-    // Reinforce dark after hydration
-    setDocumentTheme("dark");
-    setResolvedTheme("dark");
-    window.localStorage.setItem(STORAGE_KEY, "dark");
-  }, [hydrated, setDocumentTheme]);
+    if (!hydrated || theme !== "system") return;
+    const mql = window.matchMedia("(prefers-color-scheme: dark)");
+    const handler = (event: MediaQueryListEvent) => {
+      const applied = event.matches ? "dark" : "light";
+      setResolvedTheme(applied);
+      setDocumentTheme(applied);
+    };
+    mql.addEventListener("change", handler);
+    return () => mql.removeEventListener("change", handler);
+  }, [hydrated, theme, setDocumentTheme]);
 
   return {
     theme,

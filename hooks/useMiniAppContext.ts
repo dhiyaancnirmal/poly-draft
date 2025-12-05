@@ -1,15 +1,22 @@
 import { useEffect, useState } from "react";
 import { sdk } from "@farcaster/miniapp-sdk";
 
-type MiniAppUser = {
+export type MiniAppUser = {
   fid: number;
   username?: string;
   displayName?: string;
   pfpUrl?: string;
 };
 
+type MiniAppContext = {
+  user: MiniAppUser;
+  frameId?: string;
+  [key: string]: unknown;
+};
+
 export function useMiniAppContext() {
   const [user, setUser] = useState<MiniAppUser | null>(null);
+  const [context, setContext] = useState<MiniAppContext | null>(null);
   const [isInMiniApp, setIsInMiniApp] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -24,9 +31,10 @@ export function useMiniAppContext() {
         setIsInMiniApp(status);
 
         if (status) {
-          const context = await sdk.context;
+          const ctx = await sdk.context;
           if (cancelled) return;
-          setUser(context.user);
+          setContext(ctx);
+          setUser(ctx.user);
         }
       } catch (err) {
         if (!cancelled) {
@@ -46,6 +54,6 @@ export function useMiniAppContext() {
     };
   }, []);
 
-  return { user, isInMiniApp, loading, error };
+  return { user, context, isInMiniApp, loading, error };
 }
 

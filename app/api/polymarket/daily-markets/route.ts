@@ -9,9 +9,11 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
     const dateParam = searchParams.get('date')
     const seedParam = searchParams.get('seed') || undefined
+    const limitParam = searchParams.get('limit')
     const targetDate = dateParam ? new Date(dateParam) : undefined
+    const maxResults = limitParam ? Math.max(1, Math.min(100, Number(limitParam))) : 50
 
-    const markets = await fetchDailyMarkets(targetDate, seedParam)
+    const markets = await fetchDailyMarkets(targetDate, seedParam, maxResults)
 
     return NextResponse.json(markets, {
       status: 200,

@@ -2,36 +2,35 @@
 
 import React from 'react';
 import { cn } from '@/lib/utils';
-import { motion, HTMLMotionProps } from 'framer-motion';
 
-export interface ButtonProps extends Omit<HTMLMotionProps<"button">, "children"> {
-  variant?: 'primary' | 'secondary' | 'outline' | 'ghost';
-  size?: 'sm' | 'md' | 'lg';
+export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'destructive';
+  size?: 'sm' | 'md' | 'lg' | 'icon';
   loading?: boolean;
-  children: React.ReactNode;
 }
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = 'primary', size = 'md', loading = false, children, disabled, ...props }, ref) => {
-    const baseStyles = 'inline-flex items-center justify-center gap-2 rounded-lg font-semibold tracking-wide transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed min-h-touch';
+    const baseStyles = 'inline-flex items-center justify-center gap-2 rounded-xl font-semibold disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px]';
 
     const variants = {
-      primary: 'bg-primary text-primary-foreground shadow-[0_10px_24px_-16px_rgba(49,114,255,0.5)]',
-      secondary: 'bg-secondary text-secondary-foreground shadow-[0_10px_22px_-16px_rgba(76,192,255,0.35)]',
-      outline: 'border border-border/80 text-foreground',
-      ghost: 'text-muted',
+      primary: 'bg-primary text-primary-foreground active:brightness-90',
+      secondary: 'bg-secondary text-secondary-foreground active:brightness-90',
+      outline: 'border border-border bg-transparent text-foreground active:bg-accent',
+      ghost: 'bg-transparent text-muted-foreground active:bg-accent',
+      destructive: 'bg-destructive text-destructive-foreground active:brightness-90',
     };
 
     const sizes = {
-      sm: 'px-3 py-2 text-xs',
-      md: 'px-5 py-2.5 text-sm',
-      lg: 'px-6 py-3.5 text-base',
+      sm: 'px-3 py-2 text-xs min-h-[36px]',
+      md: 'px-4 py-2.5 text-sm min-h-[44px]',
+      lg: 'px-6 py-3 text-base min-h-[52px]',
+      icon: 'h-10 w-10 p-0',
     };
 
     return (
-      <motion.button
+      <button
         ref={ref}
-        whileTap={{ scale: 0.985 }}
         className={cn(
           baseStyles,
           variants[variant],
@@ -42,11 +41,11 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         disabled={disabled || loading}
         {...props}
       >
-        {loading ? (
+        {loading && (
           <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-        ) : null}
+        )}
         {children}
-      </motion.button>
+      </button>
     );
   }
 );

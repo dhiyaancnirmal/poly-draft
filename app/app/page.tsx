@@ -1,53 +1,68 @@
 "use client";
- 
+
 import { useState } from "react";
 import Link from "next/link";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { LeagueCard, MarketCard } from "@/components/features";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
-import { Plus, Trophy, Wallet, Users, Clock } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/Card";
+import { Plus, Trophy, TrendingUp } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useLeagues } from "@/lib/hooks";
-import { useAuth } from "@/lib/hooks";
 import { useTrendingMarkets, usePolymarketLivePrices } from "@/lib/hooks/usePolymarket";
 import { CreateLeagueForm } from "./leagues/create/CreateLeagueForm";
- 
+
+// Demo league for testing UI
+const DEMO_LEAGUE = {
+  id: "demo-league-123",
+  name: "Demo League",
+  members: 4,
+  maxMembers: 8,
+  status: "active" as const,
+};
+
 export default function HomePage() {
-  const { user } = useAuth();
   const { leagues, loading: isLoadingLeagues } = useLeagues();
   const { data: trendingMarkets, isLoading: isLoadingTrending } = useTrendingMarkets();
   const { livePrices: trendingLivePrices, status: trendingLiveStatus } = usePolymarketLivePrices(trendingMarkets);
   const [showCreateSheet, setShowCreateSheet] = useState(false);
+  const router = useRouter();
+
+  // Include demo league if no real leagues exist
+  const displayLeagues = leagues.length > 0 ? leagues : [];
+  const showDemoLeague = leagues.length === 0;
 
   return (
     <AppLayout title="PolyDraft">
-      <div className="p-4 space-y-6">
+      <div className="p-4 space-y-6 pb-32">
         {/* Quick Actions */}
-        <div className="flex flex-col gap-3">
+        <div className="grid grid-cols-2 gap-3">
           <Button
             size="lg"
-            className="w-full bg-primary text-primary-foreground border border-primary/30 shadow-[0_18px_50px_-18px_rgba(240,100,100,0.55)] hover:shadow-[0_22px_60px_-18px_rgba(240,100,100,0.65)] hover:-translate-y-0.5 transition-all"
+            className="w-full h-auto py-4 flex-col gap-2"
             onClick={() => setShowCreateSheet(true)}
           >
-            <Wallet className="w-5 h-5 mr-2 text-primary-foreground dark:text-white" />
-            <span className="font-semibold text-primary-foreground dark:text-white">Create League</span>
+            <Plus className="h-5 w-5" />
+            <span className="font-semibold">Create League</span>
           </Button>
           <Link href="/app/leagues" className="w-full">
             <Button
+              variant="secondary"
               size="lg"
-              className="w-full bg-primary/90 text-primary-foreground border border-primary/30 shadow-[0_16px_45px_-20px_rgba(240,100,100,0.5)] hover:shadow-[0_20px_55px_-18px_rgba(240,100,100,0.6)] hover:-translate-y-0.5 transition-all"
+              className="w-full h-auto py-4 flex-col gap-2"
             >
-              <Trophy className="w-5 h-5 mr-2 text-primary-foreground dark:text-white" />
-              <span className="font-semibold text-primary-foreground dark:text-white">My Leagues</span>
+              <Trophy className="h-5 w-5" />
+              <span className="font-semibold">My Leagues</span>
             </Button>
           </Link>
         </div>
 
         {/* Active Leagues */}
-        <section className="space-y-4">
+        <section className="space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-text">Your Leagues</h2>
-            <Link href="/app/leagues" className="text-xs font-semibold uppercase text-primary tracking-wide">
+            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Your Leagues</h2>
+            <Link href="/app/leagues" className="text-xs text-primary">
               View All
             </Link>
           </div>
@@ -57,162 +72,111 @@ export default function HomePage() {
               <>
                 <LeagueCard loading />
                 <LeagueCard loading />
-                <LeagueCard loading />
               </>
-            ) : leagues.length > 0 ? (
-              leagues.map((league) => {
-                const members = league.league_members?.length || 0;
-                const maxMembers = league.max_players || 0;
-                const fillPercent = maxMembers ? Math.min(100, Math.round((members / maxMembers) * 100)) : 0;
-                const status = league.status;
-                const statusMeta: Record<string, { label: string; color: string; pulse?: boolean }> = {
-                  open: { label: "Open", color: "bg-green-500/80" },
-                  drafting: { label: "Drafting", color: "bg-primary", pulse: true },
-                  live: { label: "Live", color: "bg-primary" },
-                  ended: { label: "Ended", color: "bg-muted" },
-                  cancelled: { label: "Ended", color: "bg-muted" },
-                  full: { label: "Full", color: "bg-warning" },
-                };
-                const meta = statusMeta[status || "open"] || statusMeta.open;
-
-                return (
-                  <div
-                    key={league.id}
-                    className="rounded-2xl border border-border bg-surface/80 p-4 shadow-[0_16px_40px_-24px_rgba(240,100,100,0.4)] hover:border-primary/50 transition-colors"
-                  >
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        <span className={`h-2.5 w-2.5 rounded-full ${meta.color} ${meta.pulse ? "animate-pulse" : ""}`} />
-                        <Badge variant="outline" className="border-transparent bg-primary/10 text-primary text-xs">
-                          {meta.label}
-                        </Badge>
-                      </div>
-                      <Badge variant="info" className="bg-primary/15 text-primary border border-primary/30 text-xs">
-                        Free Entry
-                      </Badge>
-                    </div>
-
-                    <div className="flex items-center justify-between mb-3">
-                      <Link href={`/app/leagues/${league.id}`} className="text-lg font-semibold text-foreground hover:text-primary transition-colors">
-                        {league.name}
-                      </Link>
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-3 text-xs text-muted">
-                      <div className="flex items-center gap-1.5">
-                        <Users className="h-4 w-4 text-primary/90" />
-                        <span className="text-foreground font-semibold">{members}/{maxMembers || "∞"}</span>
-                        <span className="text-muted">members</span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <Trophy className="h-4 w-4 text-primary/90" />
-                        <span className="text-foreground font-semibold">Pool: TBD</span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <Clock className="h-4 w-4 text-primary/90" />
-                        <span className="text-foreground font-semibold">Live</span>
-                      </div>
-                    </div>
-
-                    <div className="mt-3 h-2 rounded-full bg-surface-highlight/70 overflow-hidden">
-                      <div
-                        className="h-full rounded-full bg-gradient-to-r from-primary to-secondary transition-all"
-                        style={{ width: `${fillPercent}%` }}
-                      />
-                    </div>
-                  </div>
-                );
-              })
             ) : (
-              <p className="text-center text-muted py-8">
-                No active leagues found. Create one to get started!
-              </p>
+              <>
+                {/* Demo league for testing */}
+                {showDemoLeague && (
+                  <LeagueCard
+                    league={DEMO_LEAGUE}
+                    onClick={() => router.push(`/app/leagues/${DEMO_LEAGUE.id}`)}
+                    onOpen={() => router.push(`/app/leagues/${DEMO_LEAGUE.id}`)}
+                    showInfoToggle={false}
+                  />
+                )}
+                {displayLeagues.slice(0, 3).map((league) => (
+                  <LeagueCard
+                    key={league.id}
+                    league={{
+                      id: league.id,
+                      name: league.name,
+                      members: league.league_members?.length || 0,
+                      maxMembers: league.max_players || 8,
+                      status: league.status || "open",
+                    }}
+                    onClick={() => router.push(`/app/leagues/${league.id}`)}
+                    onOpen={() => router.push(`/app/leagues/${league.id}`)}
+                    showInfoToggle={false}
+                  />
+                ))}
+              </>
             )}
           </div>
         </section>
 
         {/* Trending Markets */}
-        <section className="space-y-4">
+        <section className="space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-text">Trending Markets</h2>
-            <Badge variant="success">Live</Badge>
+            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Trending</h2>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </div>
 
-          <div className="space-y-3">
-            {isLoadingTrending ? (
-              <div className="flex gap-3 overflow-x-auto scrollbar-hide">
-                <MarketCard loading className="min-w-[320px]" />
-              </div>
-            ) : trendingMarkets && trendingMarkets.length > 0 ? (
-              <div className="flex gap-3 overflow-x-auto scrollbar-hide snap-x snap-mandatory">
-                {trendingMarkets.map((selection: any) => {
-                  const prices = selection.market.outcomePrices
-                    ? selection.market.outcomePrices.split(',').map(Number)
-                    : [];
-                  const yesFallback =
-                    selection.market.bestBuyYesPrice ??
-                    (!Number.isNaN(Number(selection.market.bestBid)) ? Number(selection.market.bestBid) : undefined) ??
-                    (!Number.isNaN(Number(selection.market.lastTradePrice)) ? Number(selection.market.lastTradePrice) : undefined) ??
-                    prices[0];
-                  const yesPrice = typeof yesFallback === 'number' ? yesFallback : prices[0] ?? 0.5;
-                  const noPrice =
-                    selection.market.bestBuyNoPrice ??
-                    prices[1] ??
-                    (1 - yesPrice);
+          {isLoadingTrending ? (
+            <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-1">
+              <MarketCard loading className="min-w-[280px] flex-shrink-0" />
+              <MarketCard loading className="min-w-[280px] flex-shrink-0" />
+            </div>
+          ) : trendingMarkets && trendingMarkets.length > 0 ? (
+            <div className="flex gap-3 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-1">
+              {trendingMarkets.map((selection: any) => {
+                const prices = selection.market.outcomePrices
+                  ? selection.market.outcomePrices.split(',').map(Number)
+                  : [];
+                const yesPrice = selection.market.bestBuyYesPrice ?? prices[0] ?? 0.5;
+                const noPrice = selection.market.bestBuyNoPrice ?? prices[1] ?? (1 - yesPrice);
 
-                  return (
-                    <div key={selection.event.id} className="snap-start min-w-[320px]">
-                      <MarketCard
-                        className="h-full"
-                        market={{
-                          id: selection.market.id,
-                          question: selection.market.question,
-                          description: selection.event.description,
-                          outcomes: selection.market.outcomes.split(','),
-                          outcomePrices: [yesPrice, noPrice],
-                          yesPrice,
-                          noPrice,
-                          volume: selection.market.volume,
-                          volume24hr: selection.event.volume24hr,
-                          endTime: selection.event.endDate,
-                          category: selection.category,
-                          slug: selection.market.slug,
-                          liquidity: selection.market.liquidity,
-                          active: selection.market.active,
-                          clobTokenIds: selection.market.clobTokenIds?.split(',').map((token: string) => token.trim()),
-                        }}
-                        livePrice={trendingLivePrices[selection.market.id]}
-                        isLive={trendingLiveStatus === 'connected'}
-                      />
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="flex gap-3 overflow-x-auto scrollbar-hide">
-                <MarketCard loading className="min-w-[320px]" />
-              </div>
-            )}
-          </div>
+                return (
+                  <div key={selection.event.id} className="snap-start min-w-[280px] flex-shrink-0">
+                    <MarketCard
+                      className="h-full"
+                      market={{
+                        id: selection.market.id,
+                        question: selection.market.question,
+                        description: selection.event.description,
+                        outcomes: selection.market.outcomes.split(','),
+                        outcomePrices: [yesPrice, noPrice],
+                        yesPrice,
+                        noPrice,
+                        volume: selection.market.volume,
+                        volume24hr: selection.event.volume24hr,
+                        endTime: selection.event.endDate,
+                        category: selection.category,
+                        categoryLabel: selection.categoryLabel,
+                        slug: selection.market.slug,
+                        liquidity: selection.market.liquidity,
+                        active: selection.market.active,
+                        clobTokenIds: selection.market.clobTokenIds?.split(',').map((token: string) => token.trim()),
+                      }}
+                      livePrice={trendingLivePrices[selection.market.id]}
+                      isLive={trendingLiveStatus === 'connected'}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <Card>
+              <CardContent className="py-6 text-center">
+                <p className="text-sm text-muted-foreground">No trending markets</p>
+              </CardContent>
+            </Card>
+          )}
         </section>
 
+        {/* Create League Sheet */}
         {showCreateSheet && (
-          <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/80 px-4 pb-4">
-            <div className="w-full max-w-3xl transform rounded-t-2xl bg-surface shadow-[0_28px_60px_-24px_rgba(0,0,0,0.5)] animate-slide-up">
+          <div
+            className="fixed inset-0 z-50 flex items-end justify-center bg-black/60"
+            onClick={() => setShowCreateSheet(false)}
+          >
+            <div
+              className="w-full max-w-mobile rounded-t-2xl bg-card shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
               <div className="flex items-center justify-between border-b border-border/40 px-4 py-3">
-                <div>
-                  <h2 className="text-xl font-bold text-text">Create League</h2>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowCreateSheet(false)}
-                  className="text-foreground"
-                >
-                  Close
-                </Button>
+                <h2 className="text-base font-bold text-foreground">Create League</h2>
               </div>
-              <div className="max-h-[80vh] overflow-y-auto px-4 py-4">
+              <div className="max-h-[70vh] overflow-y-auto p-4 pb-24">
                 <CreateLeagueForm />
               </div>
             </div>

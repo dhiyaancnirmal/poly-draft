@@ -4,21 +4,22 @@ import { PolymarketEvent, PolymarketMarket, MarketSelection, MARKET_CATEGORIES, 
 export type { MarketSelection };
 
 const POLYMARKET_API = 'https://gamma-api.polymarket.com';
+const MIN_VOLUME_USD = 1000;
 
 // Category detection from market data
 export function detectMarketCategory(event: PolymarketEvent): MarketCategory {
   const { title, category, categories, tags } = event;
   const SPORT_TEAM_KEYWORDS = [
     // NBA
-    'lakers','celtics','suns','rockets','spurs','cavaliers','warriors','knicks','bulls','bucks',
-    'heat','mavericks','clippers','kings','jazz','nuggets','timberwolves','grizzlies','blazers',
-    'trail blazers','raptors','wizards','sixers','76ers','hawks','hornets','pistons','pacers',
-    'magic','thunder','pelicans','nets',
+    'lakers', 'celtics', 'suns', 'rockets', 'spurs', 'cavaliers', 'warriors', 'knicks', 'bulls', 'bucks',
+    'heat', 'mavericks', 'clippers', 'kings', 'jazz', 'nuggets', 'timberwolves', 'grizzlies', 'blazers',
+    'trail blazers', 'raptors', 'wizards', 'sixers', '76ers', 'hawks', 'hornets', 'pistons', 'pacers',
+    'magic', 'thunder', 'pelicans', 'nets',
     // NFL shorthand to strengthen detection on "vs" titles
-    'patriots','chiefs','cowboys','eagles','steelers','giants','jets','bears','packers','ravens',
-    'bills','browns','saints','vikings','dolphins','chargers','rams','raiders','niners','49ers',
-    'bengals','broncos','texans','colts','jaguars','panthers','falcons','cardinals','commanders',
-    'titans','seahawks','buccaneers','lions'
+    'patriots', 'chiefs', 'cowboys', 'eagles', 'steelers', 'giants', 'jets', 'bears', 'packers', 'ravens',
+    'bills', 'browns', 'saints', 'vikings', 'dolphins', 'chargers', 'rams', 'raiders', 'niners', '49ers',
+    'bengals', 'broncos', 'texans', 'colts', 'jaguars', 'panthers', 'falcons', 'cardinals', 'commanders',
+    'titans', 'seahawks', 'buccaneers', 'lions'
   ];
 
   // Prefer native Polymarket categories/tags when available
@@ -54,74 +55,82 @@ export function detectMarketCategory(event: PolymarketEvent): MarketCategory {
 
   // Weather patterns
   if (titleLower.includes('weather') || titleLower.includes('rain') ||
-      titleLower.includes('temperature') || titleLower.includes('snow')) {
+    titleLower.includes('temperature') || titleLower.includes('snow')) {
     return MARKET_CATEGORIES.WEATHER;
   }
 
   // Crypto patterns
   if (titleLower.includes('bitcoin') || titleLower.includes('btc') ||
-      titleLower.includes('ethereum') || titleLower.includes('eth') ||
-      titleLower.includes('crypto') || titleLower.includes('coin') ||
-      titleLower.includes('solana') || titleLower.includes('sol') ||
-      titleLower.includes('doge') || titleLower.includes('token')) {
+    titleLower.includes('ethereum') || titleLower.includes('eth') ||
+    titleLower.includes('crypto') || titleLower.includes('coin') ||
+    titleLower.includes('solana') || titleLower.includes('sol') ||
+    titleLower.includes('doge') || titleLower.includes('token')) {
     return MARKET_CATEGORIES.CRYPTO;
   }
 
   // Finance patterns
   if (titleLower.includes('s&p') || titleLower.includes('stock') ||
-      titleLower.includes('nasdaq') || titleLower.includes('dow') ||
-      titleLower.includes('index') || titleLower.includes('interest') ||
-      titleLower.includes('inflation') || titleLower.includes('treasury') ||
-      titleLower.includes('bond') || titleLower.includes('rate') ||
-      titleLower.includes('fed')) {
+    titleLower.includes('nasdaq') || titleLower.includes('dow') ||
+    titleLower.includes('index') || titleLower.includes('interest') ||
+    titleLower.includes('inflation') || titleLower.includes('treasury') ||
+    titleLower.includes('bond') || titleLower.includes('rate') ||
+    titleLower.includes('fed')) {
     return MARKET_CATEGORIES.FINANCE;
   }
 
   // Politics patterns
   if (titleLower.includes('election') || titleLower.includes('trump') ||
-      titleLower.includes('biden') || titleLower.includes('congress') ||
-      titleLower.includes('senate') || titleLower.includes('president')) {
+    titleLower.includes('biden') || titleLower.includes('congress') ||
+    titleLower.includes('senate') || titleLower.includes('president')) {
     return MARKET_CATEGORIES.POLITICS;
   }
 
   // Technology patterns
   if (titleLower.includes('elon') || titleLower.includes('musk') ||
-      titleLower.includes('twitter') || titleLower.includes('tesla') ||
-      titleLower.includes('apple') || titleLower.includes('google') ||
-      titleLower.includes('ai') || titleLower.includes('openai') ||
-      titleLower.includes('nvidia') || titleLower.includes('chip')) {
+    titleLower.includes('twitter') || titleLower.includes('tesla') ||
+    titleLower.includes('apple') || titleLower.includes('google') ||
+    titleLower.includes('ai') || titleLower.includes('openai') ||
+    titleLower.includes('nvidia') || titleLower.includes('chip')) {
     return MARKET_CATEGORIES.TECHNOLOGY;
   }
 
   // Business patterns
   if (titleLower.includes('earnings') || titleLower.includes('revenue') ||
-      titleLower.includes('profit') || titleLower.includes('sales') ||
-      titleLower.includes('ipo') || titleLower.includes('merger') ||
-      titleLower.includes('acquisition')) {
+    titleLower.includes('profit') || titleLower.includes('sales') ||
+    titleLower.includes('ipo') || titleLower.includes('merger') ||
+    titleLower.includes('acquisition')) {
     return MARKET_CATEGORIES.BUSINESS;
   }
 
   // Science patterns
   if (titleLower.includes('covid') || titleLower.includes('vaccine') ||
-      titleLower.includes('climate') || titleLower.includes('science')) {
+    titleLower.includes('climate') || titleLower.includes('science')) {
     return MARKET_CATEGORIES.SCIENCE;
   }
 
   // Sports patterns
   if (titleLower.includes('game') || titleLower.includes('match') ||
-      titleLower.includes('team') || titleLower.includes('win') ||
-      titleLower.includes('score') || titleLower.includes('season') ||
-      titleLower.includes('nfl') || titleLower.includes('nba') ||
-      titleLower.includes('mlb') || titleLower.includes('nhl') ||
-      titleLower.includes('soccer') || titleLower.includes('football') ||
-      titleLower.includes('fifa') || titleLower.includes('world cup') ||
-      titleLower.includes('olympics') ||
-      SPORT_TEAM_KEYWORDS.some(team => titleLower.includes(team)) ||
-      titleLower.includes(' vs ') || titleLower.includes(' vs. ') || titleLower.includes(' @ ')) {
+    titleLower.includes('team') || titleLower.includes('win') ||
+    titleLower.includes('score') || titleLower.includes('season') ||
+    titleLower.includes('nfl') || titleLower.includes('nba') ||
+    titleLower.includes('mlb') || titleLower.includes('nhl') ||
+    titleLower.includes('soccer') || titleLower.includes('football') ||
+    titleLower.includes('fifa') || titleLower.includes('world cup') ||
+    titleLower.includes('olympics') ||
+    SPORT_TEAM_KEYWORDS.some(team => titleLower.includes(team)) ||
+    titleLower.includes(' vs ') || titleLower.includes(' vs. ') || titleLower.includes(' @ ')) {
     return MARKET_CATEGORIES.SPORTS;
   }
 
   return MARKET_CATEGORIES.OTHER;
+}
+
+// Derive a displayable category label from Gamma metadata
+function deriveCategoryLabel(raw: any, event?: PolymarketEvent): string | undefined {
+  const primary = raw?.categories?.[0]?.label || raw?.categories?.[0]?.slug || raw?.category;
+  const tag = raw?.tags?.[0]?.label || raw?.tags?.[0]?.slug;
+  const eventCategory = event?.categories?.[0]?.label || event?.categories?.[0]?.slug;
+  return primary || tag || eventCategory;
 }
 
 // Parse outcomePrices that can arrive as JSON string or array
@@ -230,7 +239,7 @@ function shuffleWithSeed<T>(items: T[], seed?: string): T[] {
   return arr;
 }
 
-export async function fetchDailyMarkets(targetDate?: Date, seed?: string): Promise<MarketSelection[]> {
+export async function fetchDailyMarkets(targetDate?: Date, seed?: string, maxResults: number = 50): Promise<MarketSelection[]> {
   try {
     // Target window: only markets ending tomorrow (UTC 00:00 -> 23:59:59.999)
     const base = targetDate ? new Date(targetDate) : new Date();
@@ -332,11 +341,13 @@ export async function fetchDailyMarkets(targetDate?: Date, seed?: string): Promi
         const normalizedMarket = normalizeMarket(market, parsedOutcomePrices, outcomesArray, endTime);
         const event = buildEventFromMarket(market, normalizedMarket, endTime);
         const category = detectMarketCategory(event);
+        const categoryLabel = deriveCategoryLabel(market, event) || category;
 
         return {
           event,
           market: normalizedMarket,
           category,
+          categoryLabel,
           confidence: 100,
           sortVolume: Number(market.volume24hr ?? market.volume ?? 0),
           tokenIds: (() => {
@@ -356,6 +367,12 @@ export async function fetchDailyMarkets(targetDate?: Date, seed?: string): Promi
         };
       })
       .filter(Boolean) as Array<MarketSelection & { sortVolume: number; tokenIds: string[]; market: any }>;
+
+    // Drop illiquid markets
+    const liquid = filtered.filter((m) => {
+      const vol = Number(m.market.volume24hr ?? m.market.volume ?? 0);
+      return vol >= MIN_VOLUME_USD;
+    });
 
     // Fetch best BUY prices from CLOB for YES/NO tokens
     if (filtered.length > 0) {
@@ -404,80 +421,46 @@ export async function fetchDailyMarkets(targetDate?: Date, seed?: string): Promi
       }
     }
 
-    // Enforce minimum category diversity: aim for at least 2 per category when available,
-    // then fill remaining slots by highest volume.
-    // Shuffle to diversify composition per request/seed
-    const randomized = shuffleWithSeed(filtered, seed);
-
+    // Round-robin: one per category per pass until target
     const grouped = new Map<string, Array<MarketSelection & { sortVolume: number; tokenIds: string[]; market: any }>>();
-    for (const item of randomized) {
+    for (const item of liquid) {
       const cat = item.category || 'other';
       if (!grouped.has(cat)) grouped.set(cat, []);
       grouped.get(cat)!.push(item);
     }
 
-    const MAX_RESULTS = 50;
-    const selection: Array<MarketSelection & { sortVolume: number; tokenIds: string[] }> = [];
-
-    // First pass: take up to 2 from each category (ensures diversity if available)
+    // Sort each category by volume desc then end time asc
     for (const [, items] of grouped) {
-      // Prefer earlier end times within the category
-      const sortedByEnd = [...items].sort((a, b) => {
+      items.sort((a, b) => {
+        const volDiff = (Number(b.market.volume24hr ?? b.market.volume ?? 0)) - (Number(a.market.volume24hr ?? a.market.volume ?? 0));
+        if (volDiff !== 0) return volDiff;
         const ea = new Date(a.market.endDate).getTime();
         const eb = new Date(b.market.endDate).getTime();
         return ea - eb;
       });
-      const take = Math.min(2, sortedByEnd.length);
-      selection.push(...sortedByEnd.slice(0, take));
     }
 
-    // Second pass: fill remaining slots by overall volume
-    if (selection.length < MAX_RESULTS) {
-      const remainingPool = Array.from(grouped.values())
-        .flatMap((items) => items)
-        .filter((item) => !selection.includes(item));
-
-      // Bucket remaining by end time quartiles to surface varied times
-      const pooled = remainingPool.sort((a, b) => {
-        const ea = new Date(a.market.endDate).getTime();
-        const eb = new Date(b.market.endDate).getTime();
-        return ea - eb;
-      });
-
-      const q1 = Math.ceil(pooled.length * 0.25);
-      const q2 = Math.ceil(pooled.length * 0.50);
-      const q3 = Math.ceil(pooled.length * 0.75);
-      const buckets = [
-        pooled.slice(0, q1),
-        pooled.slice(q1, q2),
-        pooled.slice(q2, q3),
-        pooled.slice(q3),
-      ].map((bucket, idx) => shuffleWithSeed(bucket, `${seed || ''}-bucket-${idx}`));
-
-      const slotsLeft = MAX_RESULTS - selection.length;
-      const roundRobin: typeof remainingPool = [];
-      let added = 0;
-      while (added < slotsLeft) {
-        let progressed = false;
-        for (const bucket of buckets) {
-          if (bucket.length === 0) continue;
-          const next = bucket.shift();
-          if (next) {
-            roundRobin.push(next);
-            added += 1;
-            progressed = true;
-            if (added >= slotsLeft) break;
-          }
-        }
-        if (!progressed) break; // all buckets empty
+    const selection: Array<MarketSelection & { sortVolume: number; tokenIds: string[] }> = [];
+    const categories = Array.from(grouped.keys());
+    let idx = 0;
+    while (selection.length < maxResults && categories.some((c) => (grouped.get(c)?.length ?? 0) > 0)) {
+      const cat = categories[idx % categories.length];
+      const list = grouped.get(cat);
+      if (list && list.length > 0) {
+        selection.push(list.shift()!);
       }
-
-      selection.push(...roundRobin);
+      idx++;
     }
 
-    // Keep output randomized but stable per seed
+    // Backfill with highest-volume remaining if still short
+    if (selection.length < maxResults) {
+      const remaining = Array.from(grouped.values()).flat();
+      remaining.sort((a, b) => b.sortVolume - a.sortVolume);
+      selection.push(...remaining.slice(0, maxResults - selection.length));
+    }
+
     const topMarkets = selection
-      .slice(0, MAX_RESULTS)
+      .slice(0, maxResults)
       .map(({ sortVolume, tokenIds, ...rest }) => rest);
 
     return topMarkets;
@@ -563,11 +546,13 @@ export async function fetchTrendingMarkets(limit: number = 20): Promise<MarketSe
         const normalizedMarket = normalizeMarket(market, parsedOutcomePrices, outcomesArray, endTime);
         const event = buildEventFromMarket(market, normalizedMarket, endTime);
         const category = detectMarketCategory(event);
+        const categoryLabel = deriveCategoryLabel(market, event) || category;
 
         return {
           event,
           market: normalizedMarket,
           category,
+          categoryLabel,
           confidence: 100,
           sortVolume: Number(market.volume24hr ?? market.volume ?? 0),
           tokenIds: (() => {
@@ -588,10 +573,16 @@ export async function fetchTrendingMarkets(limit: number = 20): Promise<MarketSe
       })
       .filter(Boolean) as Array<MarketSelection & { sortVolume: number; tokenIds: string[] }>;
 
+    // Drop illiquid markets
+    const liquid = filtered.filter((m) => {
+      const vol = Number(m.market.volume24hr ?? m.market.volume ?? 0);
+      return vol >= MIN_VOLUME_USD;
+    });
+
     // Fetch best BUY prices from CLOB for YES/NO tokens
-    if (filtered.length > 0) {
+    if (liquid.length > 0) {
       const priceParams: Array<{ token_id: string; side: 'BUY' }> = [];
-      for (const item of filtered) {
+      for (const item of liquid) {
         const tokenIds = item.tokenIds;
         if (tokenIds.length >= 2) {
           priceParams.push({ token_id: tokenIds[0], side: 'BUY' });
@@ -609,7 +600,7 @@ export async function fetchTrendingMarkets(limit: number = 20): Promise<MarketSe
 
           if (priceRes.ok) {
             const priceData = await priceRes.json() as Record<string, { BUY?: string; SELL?: string }>;
-            for (const item of filtered) {
+            for (const item of liquid) {
               const tokenIds = item.tokenIds;
               if (tokenIds.length >= 2) {
                 const yesBuy = priceData[tokenIds[0]]?.BUY;
@@ -634,8 +625,42 @@ export async function fetchTrendingMarkets(limit: number = 20): Promise<MarketSe
       }
     }
 
-    const topMarkets = filtered
-      .sort((a, b) => b.sortVolume - a.sortVolume)
+    // Round-robin one per category per pass until limit
+    const grouped = new Map<string, Array<MarketSelection & { sortVolume: number; tokenIds: string[] }>>();
+    for (const item of liquid) {
+      const cat = item.category || 'other';
+      if (!grouped.has(cat)) grouped.set(cat, []);
+      grouped.get(cat)!.push(item);
+    }
+    for (const [, items] of grouped) {
+      items.sort((a, b) => {
+        const volDiff = (Number(b.market.volume24hr ?? b.market.volume ?? 0)) - (Number(a.market.volume24hr ?? a.market.volume ?? 0));
+        if (volDiff !== 0) return volDiff;
+        const ea = new Date(a.market.endDate).getTime();
+        const eb = new Date(b.market.endDate).getTime();
+        return ea - eb;
+      });
+    }
+
+    const selection: Array<MarketSelection & { sortVolume: number; tokenIds: string[] }> = [];
+    const categories = Array.from(grouped.keys());
+    let idx = 0;
+    while (selection.length < limit && categories.some((c) => (grouped.get(c)?.length ?? 0) > 0)) {
+      const cat = categories[idx % categories.length];
+      const list = grouped.get(cat);
+      if (list && list.length > 0) {
+        selection.push(list.shift()!);
+      }
+      idx++;
+    }
+
+    if (selection.length < limit) {
+      const remaining = Array.from(grouped.values()).flat();
+      remaining.sort((a, b) => b.sortVolume - a.sortVolume);
+      selection.push(...remaining.slice(0, limit - selection.length));
+    }
+
+    const topMarkets = selection
       .slice(0, limit)
       .map(({ sortVolume, tokenIds, ...rest }) => rest);
 

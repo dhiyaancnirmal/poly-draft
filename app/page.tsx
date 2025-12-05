@@ -12,7 +12,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center">
-      <div className="text-text">Loading...</div>
+      <div className="text-foreground">Loading...</div>
     </div>
   );
 }

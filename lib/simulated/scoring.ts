@@ -118,15 +118,15 @@ export async function computeAndStoreScores(supabase: TypedClient, leagueId: str
   const scoreRows: ScoreInsert[] = Object.entries(perUser).map(([userId, agg]) => {
     const points = Math.round(agg.totalValue * 100)
     return {
-      league_id: leagueId,
-      user_id: userId,
-      wallet_address: agg.wallet,
+    league_id: leagueId,
+    user_id: userId,
+    wallet_address: agg.wallet,
       points,
       rank: null,
-      is_winner: false,
-      correct_picks: agg.correctPicks,
-      total_picks: agg.totalPicks,
-      updated_at: nowIso,
+    is_winner: false,
+    correct_picks: agg.correctPicks,
+    total_picks: agg.totalPicks,
+    updated_at: nowIso,
     }
   })
 

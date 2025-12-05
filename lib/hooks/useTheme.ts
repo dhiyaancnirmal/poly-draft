@@ -7,8 +7,8 @@ export type ThemeChoice = "light" | "dark" | "system";
 const STORAGE_KEY = "poly-theme";
 
 export function useTheme() {
-  const [theme, setThemeState] = useState<ThemeChoice>("system");
-  const [resolvedTheme, setResolvedTheme] = useState<"light" | "dark">("light");
+  const [theme, setThemeState] = useState<ThemeChoice>("dark");
+  const [resolvedTheme, setResolvedTheme] = useState<"light" | "dark">("dark");
   const [hydrated, setHydrated] = useState(false);
 
   const setDocumentTheme = useCallback((value: "light" | "dark") => {
@@ -17,56 +17,32 @@ export function useTheme() {
   }, []);
 
   const applyTheme = useCallback(
-    (next: ThemeChoice) => {
-      setThemeState(next);
-      const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-      const resolved = next === "system" ? (mediaQuery.matches ? "dark" : "light") : next;
-      setDocumentTheme(resolved);
-      setResolvedTheme(resolved);
-      window.localStorage.setItem(STORAGE_KEY, next);
+    (_next: ThemeChoice) => {
+      // Force dark mode; keep API stable.
+      setThemeState("dark");
+      setDocumentTheme("dark");
+      setResolvedTheme("dark");
+      window.localStorage.setItem(STORAGE_KEY, "dark");
     },
     [setDocumentTheme]
   );
 
   useEffect(() => {
-    const stored = window.localStorage.getItem(STORAGE_KEY) as ThemeChoice | null;
-    if (stored === "light" || stored === "dark" || stored === "system") {
-      const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-      const resolved = stored === "system" ? (mediaQuery.matches ? "dark" : "light") : stored;
-      setThemeState(stored);
-      setDocumentTheme(resolved);
-      setResolvedTheme(resolved);
-    } else {
-      const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches
-        ? "dark"
-        : "light";
-      setResolvedTheme(systemTheme);
-      setDocumentTheme(systemTheme);
-    }
+    // Force default to dark on mount
+    setThemeState("dark");
+    setDocumentTheme("dark");
+    setResolvedTheme("dark");
+    window.localStorage.setItem(STORAGE_KEY, "dark");
     setHydrated(true);
-  }, []);
+  }, [setDocumentTheme]);
 
   useEffect(() => {
     if (!hydrated) return;
-
-    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-    const resolved = theme === "system" ? (mediaQuery.matches ? "dark" : "light") : theme;
-
-    setDocumentTheme(resolved);
-    setResolvedTheme(resolved);
-    window.localStorage.setItem(STORAGE_KEY, theme);
-
-    const listener = (event: MediaQueryListEvent) => {
-      if (theme === "system") {
-        const next = event.matches ? "dark" : "light";
-        setDocumentTheme(next);
-        setResolvedTheme(next);
-      }
-    };
-
-    mediaQuery.addEventListener("change", listener);
-    return () => mediaQuery.removeEventListener("change", listener);
-  }, [theme, hydrated]);
+    // Reinforce dark after hydration
+    setDocumentTheme("dark");
+    setResolvedTheme("dark");
+    window.localStorage.setItem(STORAGE_KEY, "dark");
+  }, [hydrated, setDocumentTheme]);
 
   return {
     theme,

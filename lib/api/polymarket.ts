@@ -487,6 +487,165 @@ export async function fetchDailyMarkets(targetDate?: Date, seed?: string): Promi
   }
 }
 
+// Fetch top markets by 24h volume ending within the next 7 days (trending)
+export async function fetchTrendingMarkets(limit: number = 20): Promise<MarketSelection[]> {
+  try {
+    const now = new Date();
+    const windowStart = now;
+    const windowEnd = new Date(now);
+    windowEnd.setDate(windowEnd.getDate() + 7);
+    windowEnd.setHours(23, 59, 59, 999);
+
+    const pageLimit = 500;
+    let offset = 0;
+    const allMarkets: any[] = [];
+    const seenIds = new Set<string>();
+
+    while (true) {
+      const apiUrl = new URL(`${POLYMARKET_API}/markets`);
+      apiUrl.searchParams.set('closed', 'false');
+      apiUrl.searchParams.set('limit', String(pageLimit));
+      apiUrl.searchParams.set('offset', String(offset));
+
+      const response = await fetch(apiUrl.toString(), {
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'User-Agent': 'PolyDraft/1.0',
+        },
+        cache: 'no-store',
+      });
+
+      if (!response.ok) break;
+      const data = await response.json();
+      if (!Array.isArray(data) || data.length === 0) break;
+
+      for (const market of data) {
+        const id = String(market.id);
+        if (!seenIds.has(id)) {
+          seenIds.add(id);
+          allMarkets.push(market);
+        }
+      }
+
+      if (data.length < pageLimit) break;
+      offset += pageLimit;
+    }
+
+    const filtered = allMarkets
+      .map((market) => {
+        const endTime: string | undefined = market.endTime || market.endDate || market.endDateIso;
+        if (!endTime) return null;
+
+        const endDate = new Date(endTime);
+        if (Number.isNaN(endDate.getTime())) return null;
+
+        if (!(market.active === true && market.closed !== true)) return null;
+        if (endDate < windowStart || endDate > windowEnd) return null;
+
+        const parsedOutcomePrices = parseOutcomePrices(market.outcomePrices);
+        if (!parsedOutcomePrices || parsedOutcomePrices.length < 2) return null;
+
+        const [yesPrice, noPrice] = parsedOutcomePrices;
+        const outOfRange = [yesPrice, noPrice].some((p) => p < 0.15 || p > 0.85);
+        if (outOfRange) return null;
+
+        const outcomesArray: string[] = Array.isArray(market.outcomes)
+          ? market.outcomes.map((o: any) => String(o))
+          : typeof market.outcomes === 'string'
+            ? market.outcomes.split(',').map((o: string) => o.trim())
+            : ['Yes', 'No'];
+
+        if (outcomesArray.length !== 2) return null;
+        const hasDraw = outcomesArray.some((o) => o.toLowerCase().includes('draw'));
+        if (hasDraw) return null;
+
+        const normalizedMarket = normalizeMarket(market, parsedOutcomePrices, outcomesArray, endTime);
+        const event = buildEventFromMarket(market, normalizedMarket, endTime);
+        const category = detectMarketCategory(event);
+
+        return {
+          event,
+          market: normalizedMarket,
+          category,
+          confidence: 100,
+          sortVolume: Number(market.volume24hr ?? market.volume ?? 0),
+          tokenIds: (() => {
+            const raw = market.clobTokenIds;
+            if (Array.isArray(raw)) return raw.map((t: any) => String(t).trim()).filter(Boolean);
+            if (typeof raw === 'string') {
+              try {
+                const parsed = JSON.parse(raw);
+                if (Array.isArray(parsed)) return parsed.map((t: any) => String(t).trim()).filter(Boolean);
+              } catch {
+                // not JSON, fall back to CSV
+              }
+              return raw.split(',').map((t: string) => t.trim()).filter(Boolean);
+            }
+            return [];
+          })(),
+        };
+      })
+      .filter(Boolean) as Array<MarketSelection & { sortVolume: number; tokenIds: string[] }>;
+
+    // Fetch best BUY prices from CLOB for YES/NO tokens
+    if (filtered.length > 0) {
+      const priceParams: Array<{ token_id: string; side: 'BUY' }> = [];
+      for (const item of filtered) {
+        const tokenIds = item.tokenIds;
+        if (tokenIds.length >= 2) {
+          priceParams.push({ token_id: tokenIds[0], side: 'BUY' });
+          priceParams.push({ token_id: tokenIds[1], side: 'BUY' });
+        }
+      }
+
+      if (priceParams.length > 0) {
+        try {
+          const priceRes = await fetch('https://clob.polymarket.com/prices', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body: JSON.stringify({ params: priceParams }),
+          });
+
+          if (priceRes.ok) {
+            const priceData = await priceRes.json() as Record<string, { BUY?: string; SELL?: string }>;
+            for (const item of filtered) {
+              const tokenIds = item.tokenIds;
+              if (tokenIds.length >= 2) {
+                const yesBuy = priceData[tokenIds[0]]?.BUY;
+                const noBuy = priceData[tokenIds[1]]?.BUY;
+                const yesPriceNum = yesBuy ? Number(yesBuy) : undefined;
+                const noPriceNum = noBuy ? Number(noBuy) : undefined;
+                if (yesPriceNum !== undefined && !Number.isNaN(yesPriceNum)) {
+                  item.market.bestBuyYesPrice = yesPriceNum;
+                }
+                if (noPriceNum !== undefined && !Number.isNaN(noPriceNum)) {
+                  item.market.bestBuyNoPrice = noPriceNum;
+                }
+                if (yesPriceNum !== undefined && noPriceNum !== undefined) {
+                  item.market.outcomePrices = [yesPriceNum, noPriceNum].map((p) => p.toString()).join(',');
+                }
+              }
+            }
+          }
+        } catch (err) {
+          console.error('Failed to fetch best BUY prices (trending):', err);
+        }
+      }
+    }
+
+    const topMarkets = filtered
+      .sort((a, b) => b.sortVolume - a.sortVolume)
+      .slice(0, limit)
+      .map(({ sortVolume, tokenIds, ...rest }) => rest);
+
+    return topMarkets;
+  } catch (error) {
+    console.error('Failed to fetch trending markets:', error);
+    return [];
+  }
+}
+
 // Utility to format volume for display
 export function formatVolume(volume?: number | string | null): string {
   // Handle undefined, null, or invalid values

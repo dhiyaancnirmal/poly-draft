@@ -32,6 +32,21 @@ export function useDailyMarkets(targetDate?: Date, seed?: string, options?: Part
   });
 }
 
+export function useTrendingMarkets(options?: Partial<UseQueryOptions<MarketSelection[], Error>>) {
+  return useQuery({
+    queryKey: ['trending-markets'],
+    queryFn: async () => {
+      const response = await fetch('/api/polymarket/trending/weekly');
+      if (!response.ok) throw new Error('Failed to fetch trending markets');
+      return response.json();
+    },
+    staleTime: 1000 * 60 * 5,
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 15000),
+    ...options,
+  });
+}
+
 // Hook for fetching markets for specific date (for testing different dates)
 export function useMarketsForDate(date: Date, options?: Partial<UseQueryOptions<MarketSelection[], Error>>) {
   return useQuery({

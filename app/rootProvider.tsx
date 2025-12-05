@@ -4,8 +4,11 @@ import { base } from "wagmi/chains";
 import { OnchainKitProvider } from "@coinbase/onchainkit";
 import { QueryProvider } from "@/lib/providers/QueryProvider";
 import { PreferencesProvider } from "@/lib/providers/PreferencesProvider";
+import { useTheme } from "@/lib/hooks/useTheme";
 
 export function RootProvider({ children }: { children: ReactNode }) {
+  useTheme(); // hydrate theme on load
+
   return (
     <QueryProvider>
       <OnchainKitProvider

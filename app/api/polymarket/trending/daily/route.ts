@@ -1,7 +1,15 @@
 import { NextResponse } from "next/server";
+import { fetchTrendingMarkets } from "@/lib/api/polymarket";
 
-// Placeholder trending daily route to satisfy build; replace with real implementation as needed.
+export const revalidate = 300; // 5 minutes
+
 export async function GET() {
-  return NextResponse.json({ markets: [] });
+  try {
+    const markets = await fetchTrendingMarkets(20);
+    return NextResponse.json(markets);
+  } catch (error) {
+    console.error("Trending daily error:", error);
+    return NextResponse.json({ error: "Failed to fetch trending markets" }, { status: 500 });
+  }
 }
 

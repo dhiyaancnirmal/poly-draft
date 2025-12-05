@@ -13,7 +13,7 @@ export function AppLayout({ children, title, rightAction }: AppLayoutProps) {
   return (
     <div className="min-h-screen bg-background text-foreground transition-colors">
       <div className="max-w-mobile mx-auto flex min-h-screen flex-col pb-28">
-        <header className="sticky top-0 z-40 pt-3">
+        <header className="sticky top-0 z-40 bg-[#130c0c] py-4 shadow-md/40">
           <div className="mx-4 px-1 flex items-center justify-between gap-3">
             {title ? (
               <h1 className="text-2xl font-bold text-foreground leading-snug">{title}</h1>

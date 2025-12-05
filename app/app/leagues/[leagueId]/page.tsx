@@ -9,6 +9,11 @@ type Props = {
   params: { leagueId: string };
 };
 
+function isUuid(value: string | undefined | null) {
+  if (!value) return false;
+  return /^[0-9a-fA-F-]{36}$/.test(value.trim());
+}
+
 export default async function LeagueDashboardPage({ params }: Props) {
   const leagueId = params.leagueId;
 
@@ -51,7 +56,7 @@ export default async function LeagueDashboardPage({ params }: Props) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { data: league, error } = await supabase
+  const leagueQuery = supabase
     .from("leagues")
     .select(
       `
@@ -68,8 +73,13 @@ export default async function LeagueDashboardPage({ params }: Props) {
         league_members(team_name,user_id,joined_at)
       `
     )
-    .or(`id.eq.${leagueId},join_code.eq.${leagueId}`)
-    .maybeSingle();
+    .limit(1);
+
+  const leagueFilter = isUuid(leagueId)
+    ? leagueQuery.eq("id", leagueId)
+    : leagueQuery.eq("join_code", leagueId);
+
+  const { data: league, error } = await leagueFilter.maybeSingle();
 
   if (error || !league) {
     return (

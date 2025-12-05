@@ -1,12 +1,15 @@
-import { createPublicClient, createWalletClient, http, type Chain, type Address, encodeFunctionData, keccak256, toHex } from "viem";
+import { createPublicClient, createWalletClient, http, type Chain, type Address, encodeFunctionData, keccak256, toHex, type Abi } from "viem";
 import { polygon, polygonAmoy } from "viem/chains";
 import { privateKeyToAccount, type PrivateKeyAccount } from "viem/accounts";
 import LeagueManagerAbi from "@/contracts/abis/LeagueManager.json";
 
-const leagueManagerAbi = (LeagueManagerAbi as { abi?: unknown[] }).abi;
-if (!Array.isArray(leagueManagerAbi)) {
-    throw new Error("LeagueManager ABI is missing or invalid at contracts/abis/LeagueManager.json");
-}
+const leagueManagerAbi: Abi = (() => {
+    const abi = (LeagueManagerAbi as { abi?: Abi | undefined }).abi;
+    if (!abi || !Array.isArray(abi)) {
+        throw new Error("LeagueManager ABI is missing or invalid at contracts/abis/LeagueManager.json");
+    }
+    return abi as Abi;
+})();
 
 // League status enum matching contract
 export enum LeagueStatus {

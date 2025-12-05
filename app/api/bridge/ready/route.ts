@@ -75,7 +75,6 @@ export async function GET(request: NextRequest) {
             // Try to find user by wallet
             if (walletAddress) {
                 const supabase = await safeCreateClient();
-                const supabase = await safeCreateClient();
                 const { data: user } = (await supabase
                     .from("users")
                     .select("id")

@@ -3,12 +3,13 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { Gamepad2, Home, Trophy } from "lucide-react";
+import { Gamepad2, Home, Trophy, Wallet } from "lucide-react";
 
 const navigation = [
   { name: "Home", href: "/app", icon: Home },
   { name: "Draft", href: "/app/draft", icon: Gamepad2 },
   { name: "Leagues", href: "/app/leagues", icon: Trophy },
+  { name: "Wallet", href: "/app/wallet", icon: Wallet },
 ];
 
 export function BottomNav() {

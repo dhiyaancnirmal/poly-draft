@@ -44,21 +44,16 @@ export function AppLayout({ children, title, rightAction }: AppLayoutProps) {
             ) : (
               <Link
                 href="/app/settings"
-                className="flex-shrink-0 flex items-center gap-2 rounded-full bg-surface-highlight/80 border border-border/70 px-3 py-2 shadow-sm transition hover:border-primary/60 hover:shadow-md"
+                aria-label="Profile"
+                className="flex-shrink-0 flex items-center rounded-full bg-surface-highlight/80 border border-border/70 p-1.5 shadow-sm transition hover:border-primary/60 hover:shadow-md"
               >
-                <div className="h-9 w-9 rounded-full overflow-hidden border border-primary/30 bg-primary/15 flex items-center justify-center text-sm font-semibold text-primary">
+                <div className="h-10 w-10 rounded-full overflow-hidden flex items-center justify-center text-sm font-semibold text-primary bg-surface-highlight/60">
                   {profileAvatar ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={profileAvatar} alt="Profile" className="h-full w-full object-cover" />
                   ) : (
                     <span>{profileInitials}</span>
                   )}
-                </div>
-                <div className="leading-tight">
-                  <div className="text-[11px] uppercase text-muted font-semibold">Profile</div>
-                  <div className="text-sm font-semibold text-foreground truncate max-w-[120px]">
-                    {profileLabel}
-                  </div>
                 </div>
               </Link>
             )}

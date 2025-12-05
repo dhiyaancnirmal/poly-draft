@@ -10,6 +10,7 @@ import { useState } from "react";
 import { useAuth } from "@/lib/hooks";
 import { useRouter } from "next/navigation";
 import { createLeague } from "@/app/actions/leagues";
+import { motion } from "framer-motion";
   
 export default function CreateLeaguePage() {
     const [isLoading, setIsLoading] = useState(false);
@@ -43,10 +44,15 @@ export default function CreateLeaguePage() {
 
     return (
         <AppLayout title="Create League">
-            <div className="p-4 space-y-6 pb-24">
-                <Link href="/app" className="inline-flex items-center text-sm text-muted hover:text-text transition-colors">
+            <motion.div
+                className="p-4 space-y-6 pb-24"
+                initial={{ y: 32, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ duration: 0.28, ease: "easeOut" }}
+            >
+                <Link href="/app/leagues" className="inline-flex items-center text-sm text-muted hover:text-text transition-colors">
                     <ArrowLeft className="w-4 h-4 mr-1" />
-                    Back to Home
+                    Back to Leagues
                 </Link>
 
                 <div className="space-y-2">
@@ -113,7 +119,7 @@ export default function CreateLeaguePage() {
                         Create League
                     </Button>
                 </form>
-            </div>
+            </motion.div>
         </AppLayout>
     );
 }

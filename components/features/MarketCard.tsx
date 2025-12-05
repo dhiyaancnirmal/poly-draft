@@ -37,7 +37,7 @@ export function MarketCard({ market, loading, onSelect, selectedSide, selectedMa
   const yesPrice = livePrice?.yesPrice ?? outcomePrices[0] ?? 0.5;
   const noPrice = livePrice?.noPrice ?? outcomePrices[1] ?? 0.5;
 
-  const endDateValue = market.endDate || market.endTime;
+  const endDateValue = market.endTime;
   
   const priceChange = livePrice?.priceChange ?? 0;
   const priceChangeLabel = priceChange !== 0 ? `${priceChange > 0 ? '+' : ''}${(priceChange * 100).toFixed(1)}%` : '—';

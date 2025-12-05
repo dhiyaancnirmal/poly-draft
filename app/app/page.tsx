@@ -86,7 +86,7 @@ export default function HomePage() {
                           {meta.label}
                         </Badge>
                       </div>
-                      <Badge variant="secondary" className="bg-primary/15 text-primary border border-primary/30 text-xs">
+                      <Badge variant="info" className="bg-primary/15 text-primary border border-primary/30 text-xs">
                         Free Entry
                       </Badge>
                     </div>

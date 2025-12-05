@@ -1,39 +1,55 @@
-name: sim-cron
+name: Simulated League Jobs
 
 on:
   schedule:
-    # refresh prices every 5 minutes
+    # Run every 5 minutes
     - cron: "*/5 * * * *"
-    # scoring every 10 minutes
-    - cron: "*/10 * * * *"
-    # resolutions hourly
-    - cron: "0 * * * *"
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      job:
+        description: 'Job to run'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - refresh-prices
+          - score
+          - resolutions
 
 env:
   BASE_URL: https://poly-draft-ypzk.vercel.app
 
 jobs:
-  run-sim-jobs:
+  refresh-prices:
     runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'schedule' || github.event.inputs.job == 'all' || github.event.inputs.job == 'refresh-prices' }}
     steps:
       - name: Refresh prices
         run: |
-          curl -X POST "$BASE_URL/api/leagues/simulated/jobs/refresh-prices"
+          echo "Refreshing prices..."
+          curl -sf -X POST "$BASE_URL/api/leagues/simulated/jobs/refresh-prices" \
+            -H "Content-Type: application/json" \
+            --max-time 30 || echo "Request failed or timed out"
 
+  score:
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'schedule' || github.event.inputs.job == 'all' || github.event.inputs.job == 'score' }}
+    steps:
       - name: Score leagues
         run: |
-          curl -X POST "$BASE_URL/api/leagues/simulated/jobs/score"
+          echo "Scoring leagues..."
+          curl -sf -X POST "$BASE_URL/api/leagues/simulated/jobs/score" \
+            -H "Content-Type: application/json" \
+            --max-time 30 || echo "Request failed or timed out"
 
-      - name: Resolutions
+  resolutions:
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'schedule' || github.event.inputs.job == 'all' || github.event.inputs.job == 'resolutions' }}
+    steps:
+      - name: Process resolutions
         run: |
-          curl -X POST "$BASE_URL/api/leagues/simulated/jobs/resolutions"
-
-      # Uncomment and set LEAGUE_ID to schedule finalize for a specific league end time,
-      # or trigger manually via workflow_dispatch with an env override.
-      # - name: Finalize (example)
-      #   run: |
-      #     curl -X POST "$BASE_URL/api/leagues/simulated/jobs/finalize?leagueId=$LEAGUE_ID"
-      #   env:
-      #     LEAGUE_ID: ""
-
+          echo "Processing resolutions..."
+          curl -sf -X POST "$BASE_URL/api/leagues/simulated/jobs/resolutions" \
+            -H "Content-Type: application/json" \
+            --max-time 30 || echo "Request failed or timed out"

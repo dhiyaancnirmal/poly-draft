@@ -76,7 +76,7 @@ export function CreateLeagueForm() {
       }
 
       setJoinCode(result.joinCode);
-      router.push(`/app/draft/${result.leagueId}`);
+      router.push(`/app/leagues/${result.leagueId}`);
     });
   };
 

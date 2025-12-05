@@ -10,27 +10,28 @@ import { Plus, Trophy, Wallet, Users, Clock } from "lucide-react";
 import { useLeagues } from "@/lib/hooks";
 import { useAuth } from "@/lib/hooks";
 import { useTrendingMarkets, usePolymarketLivePrices } from "@/lib/hooks/usePolymarket";
+import { CreateLeagueForm } from "./leagues/create/CreateLeagueForm";
  
 export default function HomePage() {
   const { user } = useAuth();
-  const { leagues, loading: isLoadingLeagues, createLeague, joinLeague } = useLeagues();
+  const { leagues, loading: isLoadingLeagues } = useLeagues();
   const { data: trendingMarkets, isLoading: isLoadingTrending } = useTrendingMarkets();
   const { livePrices: trendingLivePrices, status: trendingLiveStatus } = usePolymarketLivePrices(trendingMarkets);
+  const [showCreateSheet, setShowCreateSheet] = useState(false);
 
   return (
     <AppLayout title="PolyDraft">
       <div className="p-4 space-y-6">
         {/* Quick Actions */}
         <div className="flex flex-col gap-3">
-          <Link href="/app/create" className="w-full">
-            <Button
-              size="lg"
-              className="w-full bg-primary text-primary-foreground border border-primary/30 shadow-[0_18px_50px_-18px_rgba(240,100,100,0.55)] hover:shadow-[0_22px_60px_-18px_rgba(240,100,100,0.65)] hover:-translate-y-0.5 transition-all"
-            >
-              <Wallet className="w-5 h-5 mr-2 text-primary-foreground dark:text-white" />
-              <span className="font-semibold text-primary-foreground dark:text-white">Create League</span>
-            </Button>
-          </Link>
+          <Button
+            size="lg"
+            className="w-full bg-primary text-primary-foreground border border-primary/30 shadow-[0_18px_50px_-18px_rgba(240,100,100,0.55)] hover:shadow-[0_22px_60px_-18px_rgba(240,100,100,0.65)] hover:-translate-y-0.5 transition-all"
+            onClick={() => setShowCreateSheet(true)}
+          >
+            <Wallet className="w-5 h-5 mr-2 text-primary-foreground dark:text-white" />
+            <span className="font-semibold text-primary-foreground dark:text-white">Create League</span>
+          </Button>
           <Link href="/app/leagues" className="w-full">
             <Button
               size="lg"
@@ -92,7 +93,7 @@ export default function HomePage() {
                     </div>
 
                     <div className="flex items-center justify-between mb-3">
-                      <Link href={`/app/draft/${league.id}`} className="text-lg font-semibold text-foreground hover:text-primary transition-colors">
+                      <Link href={`/app/leagues/${league.id}`} className="text-lg font-semibold text-foreground hover:text-primary transition-colors">
                         {league.name}
                       </Link>
                     </div>
@@ -194,6 +195,29 @@ export default function HomePage() {
             )}
           </div>
         </section>
+
+        {showCreateSheet && (
+          <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/80 px-4 pb-4">
+            <div className="w-full max-w-3xl transform rounded-t-2xl bg-surface shadow-[0_28px_60px_-24px_rgba(0,0,0,0.5)] animate-slide-up">
+              <div className="flex items-center justify-between border-b border-border/40 px-4 py-3">
+                <div>
+                  <h2 className="text-xl font-bold text-text">Create League</h2>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowCreateSheet(false)}
+                  className="text-foreground"
+                >
+                  Close
+                </Button>
+              </div>
+              <div className="max-h-[80vh] overflow-y-auto px-4 py-4">
+                <CreateLeagueForm />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </AppLayout>
   );

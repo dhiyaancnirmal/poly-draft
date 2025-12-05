@@ -101,7 +101,7 @@ export default function SettingsPage() {
                   <p className="text-sm text-muted">@{miniUser?.username || profile?.username}</p>
                 )}
                 {(miniUser?.fid ?? profile?.fid) && (
-                  <Badge variant="default" className="mt-2 bg-sky-50 text-sky-700 border border-sky-200">
+                  <Badge variant="default" className="mt-2 bg-sky-100 text-sky-700 border border-sky-200">
                     FID: {miniUser?.fid ?? profile?.fid}
                   </Badge>
                 )}

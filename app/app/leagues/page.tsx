@@ -11,7 +11,7 @@ import { Link2, Trophy, Users } from "lucide-react";
 import { useLeagues } from "@/lib/hooks";
 import { useAuth } from "@/lib/hooks";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
+import { CreateLeagueForm } from "./create/CreateLeagueForm";
 
 export default function LeaguesPage() {
   const { user } = useAuth();
@@ -20,6 +20,7 @@ export default function LeaguesPage() {
   const [joinError, setJoinError] = useState("");
   const [joinLoading, setJoinLoading] = useState(false);
   const [showJoinForm, setShowJoinForm] = useState(false);
+  const [showCreateSheet, setShowCreateSheet] = useState(false);
   const router = useRouter();
 
   const myLeagues = useMemo(
@@ -125,15 +126,14 @@ export default function LeaguesPage() {
     <AppLayout title="Leagues">
       <div className="p-4 space-y-5">
         <div className="grid gap-3 md:grid-cols-2">
-          <Link href="/app/leagues/create" className="w-full">
-            <Button
-              size="lg"
-              className="w-full bg-primary text-primary-foreground border border-primary/30 shadow-[0_18px_50px_-18px_rgba(240,100,100,0.55)] hover:shadow-[0_22px_60px_-18px_rgba(240,100,100,0.65)] hover:-translate-y-0.5 transition-all"
-            >
-              <Trophy className="w-4 h-4 text-primary-foreground dark:text-white" />
-              <span className="font-semibold text-primary-foreground dark:text-white">Create New League</span>
-            </Button>
-          </Link>
+          <Button
+            size="lg"
+            className="w-full bg-primary text-primary-foreground border border-primary/30 shadow-[0_18px_50px_-18px_rgba(240,100,100,0.55)] hover:shadow-[0_22px_60px_-18px_rgba(240,100,100,0.65)] hover:-translate-y-0.5 transition-all"
+            onClick={() => setShowCreateSheet(true)}
+          >
+            <Trophy className="w-4 h-4 text-primary-foreground dark:text-white" />
+            <span className="font-semibold text-primary-foreground dark:text-white">Create New League</span>
+          </Button>
           <Button
             size="lg"
             className="w-full bg-primary/90 text-primary-foreground border border-primary/30 shadow-[0_16px_45px_-20px_rgba(240,100,100,0.5)] hover:shadow-[0_20px_55px_-18px_rgba(240,100,100,0.6)] hover:-translate-y-0.5 transition-all"
@@ -203,6 +203,30 @@ export default function LeaguesPage() {
                   </div>
                 </div>
               </Card>
+            </div>
+          </div>
+        )}
+
+        {showCreateSheet && (
+          <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm px-4 pb-4">
+            <div className="w-full max-w-3xl transform rounded-t-2xl bg-surface/95 shadow-[0_28px_60px_-24px_rgba(0,0,0,0.5)] transition-transform animate-[slide-up_240ms_ease-out]">
+              <div className="flex items-center justify-between border-b border-border/40 px-4 py-3">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-primary">Quick create</p>
+                  <h2 className="text-xl font-bold text-text">Create League</h2>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowCreateSheet(false)}
+                  className="text-foreground"
+                >
+                  Close
+                </Button>
+              </div>
+              <div className="max-h-[80vh] overflow-y-auto px-4 py-4">
+                <CreateLeagueForm />
+              </div>
             </div>
           </div>
         )}

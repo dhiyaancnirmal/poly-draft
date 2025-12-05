@@ -46,6 +46,8 @@ const tikTokSans = TikTok_Sans({
   variable: "--font-tiktok-sans",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
+  fallback: ["system-ui", "-apple-system", "Segoe UI", "sans-serif"],
+  adjustFontFallback: false,
 });
 
 const sourceCodePro = Source_Code_Pro({

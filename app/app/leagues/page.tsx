@@ -26,7 +26,8 @@ export default function LeaguesPage() {
     () =>
       leagues.filter(
         (league) =>
-          league.creator_id === user?.id ||
+          (league as any).created_by === user?.id ||
+          (league as any).creator_id === user?.id ||
           league.league_members?.some((member) => member.user_id === user?.id)
       ),
     [leagues, user?.id]

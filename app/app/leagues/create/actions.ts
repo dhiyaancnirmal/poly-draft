@@ -94,6 +94,20 @@ export async function createLeague(formData: FormData): Promise<CreateLeagueResu
     return { success: false, error: error?.message || 'Failed to create league' }
   }
 
+  // Auto-add creator as a member for downstream filters/lists
+  const walletForMembership = creatorWallet || user.email || user.id
+  const { error: memberError } = await (supabase
+    .from('league_members') as any)
+    .insert({
+      league_id: data.id,
+      user_id: user.id,
+      wallet_address: walletForMembership,
+    })
+
+  if (memberError) {
+    console.warn('Failed to insert creator as league member (continuing):', memberError)
+  }
+
   revalidatePath('/app/leagues')
   revalidatePath('/app')
 

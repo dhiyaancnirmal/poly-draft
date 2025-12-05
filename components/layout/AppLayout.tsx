@@ -1,36 +1,29 @@
-"use client";
-
 import { ReactNode } from "react";
 import { BottomNav } from "./BottomNav";
 
 interface AppLayoutProps {
   children: ReactNode;
-  title?: ReactNode;
-  rightAction?: ReactNode;
+  title?: string;
 }
 
-export function AppLayout({ children, title, rightAction }: AppLayoutProps) {
+export function AppLayout({ children, title }: AppLayoutProps) {
   return (
-    <div className="min-h-screen bg-background text-foreground transition-colors">
-      <div className="max-w-mobile mx-auto flex min-h-screen flex-col pb-28">
-        <header className="sticky top-0 z-40 pt-3">
-          <div className="mx-4 px-1 flex items-center justify-between gap-3">
-            {title ? (
-              <h1 className="text-2xl font-bold text-foreground leading-snug">{title}</h1>
-            ) : null}
-            {rightAction ? (
-              <div className="flex-shrink-0">
-                {rightAction}
-              </div>
-            ) : null}
+    <div className="min-h-screen bg-background pb-16">
+      {/* Header */}
+      {title && (
+        <header className="sticky top-0 z-40 bg-surface/80 backdrop-blur-lg border-b border-surface/20">
+          <div className="max-w-mobile mx-auto px-4 py-4">
+            <h1 className="text-xl font-bold text-text">{title}</h1>
           </div>
         </header>
+      )}
 
-        <main className="flex-1 w-full">
-          {children}
-        </main>
-      </div>
+      {/* Main Content */}
+      <main className="max-w-mobile mx-auto">
+        {children}
+      </main>
 
+      {/* Bottom Navigation */}
       <BottomNav />
     </div>
   );

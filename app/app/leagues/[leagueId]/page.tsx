@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/Card";
 import { createClient } from "@/lib/supabase/server";
 import { TeamNameForm } from "./TeamNameForm";
 import { Database } from "@/lib/supabase/database-types";
+import { TempmaybePredixCard } from "./TempmaybePredixCard";
 
 type Props = {
   params: { leagueId: string };
@@ -172,6 +173,9 @@ export default async function LeagueDashboardPage({ params }: Props) {
             <p>Join code: {typed.join_code}</p>
           </CardContent>
         </Card>
+
+        {/* Temporary Predix surfacing for this league */}
+        <TempmaybePredixCard leagueId={typed.id} />
       </div>
     </AppLayout>
   );

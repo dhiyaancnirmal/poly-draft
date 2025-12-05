@@ -232,13 +232,22 @@ function shuffleWithSeed<T>(items: T[], seed?: string): T[] {
 
 export async function fetchDailyMarkets(targetDate?: Date, seed?: string): Promise<MarketSelection[]> {
   try {
-    // Target window: from "now" through end of day tomorrow (inclusive)
-    const windowStart = targetDate ? new Date(targetDate) : new Date();
-    const windowEnd = new Date(windowStart);
-    windowEnd.setDate(windowEnd.getDate() + 1);
-    windowEnd.setHours(23, 59, 59, 999);
+    // Target window: only markets ending tomorrow (UTC 00:00 -> 23:59:59.999)
+    const base = targetDate ? new Date(targetDate) : new Date();
+    const windowStart = new Date(Date.UTC(
+      base.getUTCFullYear(),
+      base.getUTCMonth(),
+      base.getUTCDate() + 1, // tomorrow UTC start
+      0, 0, 0, 0
+    ));
+    const windowEnd = new Date(Date.UTC(
+      base.getUTCFullYear(),
+      base.getUTCMonth(),
+      base.getUTCDate() + 1, // tomorrow UTC end
+      23, 59, 59, 999
+    ));
 
-    // Only include markets ending within the window
+    // Only include markets ending within the UTC window
     const lowerBound = windowStart;
 
     const limit = 500;
@@ -288,7 +297,8 @@ export async function fetchDailyMarkets(targetDate?: Date, seed?: string): Promi
 
     const filtered = allMarkets
       .map((market) => {
-        const endTime: string | undefined = market.endTime || market.endDateIso || market.endDate;
+        // Prefer full timestamp; fall back to date-only last
+        const endTime: string | undefined = market.endTime || market.endDate || market.endDateIso;
         if (!endTime) return null;
 
         const endDate = new Date(endTime);
@@ -411,8 +421,14 @@ export async function fetchDailyMarkets(targetDate?: Date, seed?: string): Promi
 
     // First pass: take up to 2 from each category (ensures diversity if available)
     for (const [, items] of grouped) {
-      const take = Math.min(2, items.length);
-      selection.push(...items.slice(0, take));
+      // Prefer earlier end times within the category
+      const sortedByEnd = [...items].sort((a, b) => {
+        const ea = new Date(a.market.endDate).getTime();
+        const eb = new Date(b.market.endDate).getTime();
+        return ea - eb;
+      });
+      const take = Math.min(2, sortedByEnd.length);
+      selection.push(...sortedByEnd.slice(0, take));
     }
 
     // Second pass: fill remaining slots by overall volume
@@ -421,8 +437,42 @@ export async function fetchDailyMarkets(targetDate?: Date, seed?: string): Promi
         .flatMap((items) => items)
         .filter((item) => !selection.includes(item));
 
+      // Bucket remaining by end time quartiles to surface varied times
+      const pooled = remainingPool.sort((a, b) => {
+        const ea = new Date(a.market.endDate).getTime();
+        const eb = new Date(b.market.endDate).getTime();
+        return ea - eb;
+      });
+
+      const q1 = Math.ceil(pooled.length * 0.25);
+      const q2 = Math.ceil(pooled.length * 0.50);
+      const q3 = Math.ceil(pooled.length * 0.75);
+      const buckets = [
+        pooled.slice(0, q1),
+        pooled.slice(q1, q2),
+        pooled.slice(q2, q3),
+        pooled.slice(q3),
+      ].map((bucket, idx) => shuffleWithSeed(bucket, `${seed || ''}-bucket-${idx}`));
+
       const slotsLeft = MAX_RESULTS - selection.length;
-      selection.push(...remainingPool.slice(0, slotsLeft));
+      const roundRobin: typeof remainingPool = [];
+      let added = 0;
+      while (added < slotsLeft) {
+        let progressed = false;
+        for (const bucket of buckets) {
+          if (bucket.length === 0) continue;
+          const next = bucket.shift();
+          if (next) {
+            roundRobin.push(next);
+            added += 1;
+            progressed = true;
+            if (added >= slotsLeft) break;
+          }
+        }
+        if (!progressed) break; // all buckets empty
+      }
+
+      selection.push(...roundRobin);
     }
 
     // Keep output randomized but stable per seed
@@ -475,4 +525,17 @@ export function formatEndTime(endDate: string): string {
   } else {
     return 'Soon';
   }
+}
+
+// Local timestamp string for display
+export function formatLocalEndDate(endDate: string): string {
+  const date = new Date(endDate);
+  if (Number.isNaN(date.getTime())) return 'Invalid date';
+  return date.toLocaleString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
 }

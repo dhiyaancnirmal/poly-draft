@@ -12,11 +12,6 @@
       "path": "/api/leagues/simulated/jobs/resolutions",
       "schedule": "0 * * * *"
     }
-    // Add finalize per league when you know the leagueId and end time:
-    // {
-    //   "path": "/api/leagues/simulated/jobs/finalize?leagueId=<LEAGUE_ID>",
-    //   "schedule": "<cron>"
-    // }
   ]
 }
 

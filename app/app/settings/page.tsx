@@ -4,7 +4,6 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
-import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { User, Bell, Shield, Palette, HelpCircle, LogOut, ChevronRight, Wallet, Copy, ExternalLink } from "lucide-react";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { LucideIcon } from "lucide-react";
@@ -38,6 +37,7 @@ export default function SettingsPage() {
       title: "App Preferences",
       items: [
         { icon: Bell, label: "Notifications", value: "On" },
+        { icon: Palette, label: "Appearance", value: "Dark" },
         { icon: Shield, label: "Privacy & Security" },
       ]
     },
@@ -53,18 +53,6 @@ export default function SettingsPage() {
   return (
     <AppLayout title="Settings">
       <div className="p-4 space-y-6 pb-24">
-        <Card className="p-4 border-dashed border-primary/40 bg-primary/5">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-sm font-semibold text-text">Settings moved</p>
-              <p className="text-xs text-muted">Manage theme and market display preferences from your Profile.</p>
-            </div>
-            <Button variant="outline" size="sm" onClick={() => window.location.assign("/app/profile")}>
-              Go to Profile
-            </Button>
-          </div>
-        </Card>
-
         {/* Profile Section */}
         {loading ? (
           <Card className="p-6">
@@ -109,9 +97,6 @@ export default function SettingsPage() {
                 </h2>
                 {profile.username && (
                   <p className="text-sm text-muted">@{profile.username}</p>
-                )}
-                {profile.ens_name && (
-                  <p className="text-sm text-muted">{profile.ens_name}</p>
                 )}
                 {profile.fid && (
                   <Badge variant="default" className="mt-2 bg-purple-500/10 text-purple-400 border-purple-500/20">
@@ -186,19 +171,6 @@ export default function SettingsPage() {
 
         {/* Settings Groups */}
         <div className="space-y-6">
-          {/* Appearance */}
-          <div className="space-y-3">
-            <h3 className="px-1 text-xs font-bold text-muted uppercase tracking-wider">Appearance</h3>
-            <Card className="p-4">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-sm font-semibold text-text">Theme</p>
-                </div>
-                <ThemeToggle />
-              </div>
-            </Card>
-          </div>
-
           {sections.map((section, idx) => (
             <div key={idx} className="space-y-3">
               <h3 className="px-1 text-xs font-bold text-muted uppercase tracking-wider">{section.title}</h3>
@@ -207,7 +179,7 @@ export default function SettingsPage() {
                   <Button
                     key={itemIdx}
                     variant="ghost"
-                    className="w-full justify-between px-4 py-4 h-auto rounded-none first:rounded-t-card last:rounded-b-card"
+                    className="w-full justify-between px-4 py-4 h-auto hover:bg-surface-highlight/20 rounded-none first:rounded-t-card last:rounded-b-card"
                   >
                     <div className="flex items-center gap-3">
                       <div className={`p-2 rounded-full ${item.variant === 'danger' ? 'bg-error/10 text-error' : 'bg-surface-highlight/50 text-primary'}`}>

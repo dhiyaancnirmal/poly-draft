@@ -36,15 +36,15 @@ export function LeagueCard({ league, loading, action }: LeagueCardProps) {
 
   const statusVariant = league.status === 'active' ? 'success' :
     league.status === 'full' ? 'warning' : 'default';
-  const statusLabel = league.status.charAt(0).toUpperCase() + league.status.slice(1);
 
   return (
-    <Card className="relative">
+    <Card hoverable className="group relative">
+      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-secondary opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
       <CardHeader>
         <div className="flex items-start justify-between">
-          <h3 className="font-bold text-lg text-text">{league.name}</h3>
+          <h3 className="font-bold text-lg text-text group-hover:text-primary transition-colors">{league.name}</h3>
           <Badge variant={statusVariant}>
-            {statusLabel}
+            {league.status}
           </Badge>
         </div>
       </CardHeader>
@@ -57,11 +57,11 @@ export function LeagueCard({ league, loading, action }: LeagueCardProps) {
             </span>
           </div>
           <div className="flex justify-between items-center text-sm border-b border-surface-highlight/50 pb-3">
-            <span className="text-muted font-medium">Mode</span>
+            <span className="text-muted font-medium">Prize Pool</span>
             <span className="text-primary font-bold">{league.prizePool}</span>
           </div>
           <div className="flex justify-between items-center text-sm">
-            <span className="text-muted font-medium">Cost</span>
+            <span className="text-muted font-medium">Entry Fee</span>
             <span className="text-text font-bold">{league.entryFee}</span>
           </div>
           {action && (

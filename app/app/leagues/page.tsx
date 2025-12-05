@@ -20,12 +20,6 @@ export default function LeaguesPage() {
   const [filterStatus, setFilterStatus] = useState<"all" | "active" | "full">("all");
   const router = useRouter();
 
-  const counts = {
-    all: leagues.length,
-    active: leagues.filter((l) => l.status !== "ended" && l.status !== "cancelled" && (l.league_members?.length || 0) < l.max_players).length,
-    full: leagues.filter((l) => (l.league_members?.length || 0) >= l.max_players).length,
-  };
-
   const filteredLeagues = leagues.filter(league => {
     const matchesSearch = league.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = filterStatus === 'all' || league.status === filterStatus;
@@ -69,10 +63,7 @@ export default function LeaguesPage() {
 
   return (
     <AppLayout title="Leagues">
-      <div className="p-4 space-y-6 pb-20">
-        <div className="space-y-1 px-1">
-          <p className="text-sm text-muted">Find and join leagues to start drafting.</p>
-        </div>
+      <div className="p-4 space-y-4">
         {/* Search and Filters */}
         <div className="space-y-3">
           <Input
@@ -81,40 +72,38 @@ export default function LeaguesPage() {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
           
-          <div className="flex flex-wrap gap-2">
+          <div className="flex gap-2">
             <Button
               variant={filterStatus === "all" ? "primary" : "outline"}
               size="sm"
               onClick={() => setFilterStatus("all")}
             >
-              All ({counts.all})
+              All (0)
             </Button>
             <Button
               variant={filterStatus === "active" ? "primary" : "outline"}
               size="sm"
               onClick={() => setFilterStatus("active")}
             >
-              Active ({counts.active})
+              Active (0)
             </Button>
             <Button
               variant={filterStatus === "full" ? "primary" : "outline"}
               size="sm"
               onClick={() => setFilterStatus("full")}
             >
-              Full ({counts.full})
+              Full (0)
             </Button>
           </div>
         </div>
 
         {/* Create League Button */}
-        <div className="pt-1">
-          <Link href="/app/create" className="w-full block">
-            <Button size="lg" className="w-full">
-              <Trophy className="w-4 h-4 mr-2" />
-              Create New League
-            </Button>
-          </Link>
-        </div>
+        <Link href="/app/create" className="w-full">
+          <Button size="lg" className="w-full">
+            <Trophy className="w-4 h-4 mr-2" />
+            Create New League
+          </Button>
+        </Link>
 
         {/* Leagues List */}
         <div className="space-y-3">
@@ -136,7 +125,6 @@ export default function LeaguesPage() {
               };
 
               const displayStatus = getDisplayStatus();
-              const modeLabel = league.mode === 'live' ? 'Polymarket routing' : league.mode === 'competitive' ? 'Competitive' : 'Simulated picks';
 
               return (
                 <div
@@ -157,9 +145,9 @@ export default function LeaguesPage() {
                       name: league.name,
                       members: league.league_members?.length || 0,
                       maxMembers: league.max_players,
-                      prizePool: modeLabel,
+                      prizePool: league.mode === 'competitive' ? 'TBD' : 'Social',
                       status: displayStatus,
-                      entryFee: modeLabel === 'Polymarket routing' ? 'On-chain' : 'Free'
+                      entryFee: 'Free'
                     }}
                     action={
                     <>

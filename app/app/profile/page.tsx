@@ -55,9 +55,9 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        <div className="rounded-lg border border-primary/30 bg-primary/10 px-3 py-2">
-          <div className="text-xs uppercase text-primary font-semibold tracking-wide">FID</div>
-          <div className="text-sm font-mono text-primary">{user.fid}</div>
+        <div className="rounded-lg border border-sky-200 bg-sky-50 px-3 py-2">
+          <div className="text-xs uppercase text-sky-700 font-semibold tracking-wide">FID</div>
+          <div className="text-sm font-mono text-sky-700">{user.fid}</div>
         </div>
       </div>
     );

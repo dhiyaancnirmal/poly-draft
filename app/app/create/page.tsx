@@ -4,18 +4,26 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
-import { ArrowLeft, DollarSign, Users } from "lucide-react";
+import { ArrowLeft, DollarSign, Users, CalendarRange, X } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useAuth } from "@/lib/hooks";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
   
 export default function CreateLeaguePage() {
     const [isLoading, setIsLoading] = useState(false);
+    const [isCadenceModalOpen, setIsCadenceModalOpen] = useState(false);
+    const [cadenceType, setCadenceType] = useState<"daily" | "weekly">("daily");
+    const [marketsPerPeriod, setMarketsPerPeriod] = useState<number>(1);
     const { user } = useAuth();
     const router = useRouter();
     const supabase = createClient();
+
+    const cadenceOptions = useMemo(() => ({
+        daily: [1, 2, 3],
+        weekly: [3, 5, 7],
+    }), []);
  
      const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -35,6 +43,8 @@ export default function CreateLeaguePage() {
                 entry_fee: parseFloat(formData.get('entry_fee') as string),
                 max_players: parseInt(formData.get('max_players') as string),
                 creator_id: user.id,
+                cadence_type: cadenceType,
+                markets_per_period: marketsPerPeriod,
             };
 
             const { data: newLeague, error } = await supabase
@@ -119,6 +129,36 @@ export default function CreateLeaguePage() {
                                 </div>
                             </div>
                         </div>
+
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium text-text flex items-center gap-2">
+                                <CalendarRange className="w-4 h-4 text-primary" />
+                                Draft cadence & markets
+                            </label>
+                            <p className="text-xs text-muted">
+                                Everyone sees the same markets; each outcome can be picked once per market.
+                            </p>
+                            <div className="flex items-center justify-between gap-2 rounded-lg border border-border/70 bg-surface/70 px-3 py-3">
+                                <div>
+                                    <p className="text-sm font-semibold text-text capitalize">{cadenceType}</p>
+                                    <p className="text-xs text-muted">
+                                        {cadenceType === "daily"
+                                            ? `${marketsPerPeriod} market${marketsPerPeriod > 1 ? "s" : ""} per day`
+                                            : `${marketsPerPeriod} markets per week`}
+                                    </p>
+                                </div>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setIsCadenceModalOpen(true)}
+                                >
+                                    Edit
+                                </Button>
+                            </div>
+                            <input type="hidden" name="cadence_type" value={cadenceType} />
+                            <input type="hidden" name="markets_per_period" value={marketsPerPeriod} />
+                        </div>
                     </Card>
 
                     <Button
@@ -130,6 +170,94 @@ export default function CreateLeaguePage() {
                         Create League
                     </Button>
                 </form>
+
+                {isCadenceModalOpen && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+                        <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setIsCadenceModalOpen(false)} />
+                        <Card className="relative w-full max-w-md p-5 space-y-5 shadow-2xl">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm font-semibold text-text">Select cadence</p>
+                                    <p className="text-xs text-muted">Choose period and markets per period.</p>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => setIsCadenceModalOpen(false)}
+                                    className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-surface-highlight text-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                                    aria-label="Close cadence modal"
+                                >
+                                    <X className="h-4 w-4" />
+                                </button>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3">
+                                {(["daily", "weekly"] as const).map((type) => (
+                                    <button
+                                        key={type}
+                                        type="button"
+                                        onClick={() => {
+                                            setCadenceType(type);
+                                            const fallback = cadenceOptions[type][0];
+                                            if (!cadenceOptions[type].includes(marketsPerPeriod)) {
+                                                setMarketsPerPeriod(fallback);
+                                            }
+                                        }}
+                                        className={`
+                                            rounded-lg border px-3 py-3 text-left transition-colors
+                                            ${cadenceType === type
+                                                ? "border-primary bg-primary/10 text-primary"
+                                                : "border-border/70 bg-surface/70 text-foreground"}
+                                        `}
+                                    >
+                                        <p className="text-sm font-semibold capitalize">{type}</p>
+                                        <p className="text-xs text-muted">
+                                            {type === "daily" ? "Fixed markets each day" : "Fixed markets each week"}
+                                        </p>
+                                    </button>
+                                ))}
+                            </div>
+
+                            <div className="space-y-2">
+                                <p className="text-xs font-semibold text-text uppercase tracking-wide">Markets per {cadenceType}</p>
+                                <div className="grid grid-cols-3 gap-2">
+                                    {cadenceOptions[cadenceType].map((count) => (
+                                        <button
+                                            key={count}
+                                            type="button"
+                                            onClick={() => setMarketsPerPeriod(count)}
+                                            className={`
+                                                rounded-lg border px-3 py-2 text-sm font-semibold transition-colors
+                                                ${marketsPerPeriod === count
+                                                    ? "border-primary bg-primary/10 text-primary"
+                                                    : "border-border/70 bg-surface/70 text-foreground"}
+                                            `}
+                                        >
+                                            {count}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="flex items-center justify-end gap-2">
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => setIsCadenceModalOpen(false)}
+                                >
+                                    Cancel
+                                </Button>
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    onClick={() => setIsCadenceModalOpen(false)}
+                                >
+                                    Save
+                                </Button>
+                            </div>
+                        </Card>
+                    </div>
+                )}
             </div>
         </AppLayout>
     );

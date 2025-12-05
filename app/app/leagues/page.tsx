@@ -124,7 +124,7 @@ export default function LeaguesPage() {
     <AppLayout title="Leagues">
       <div className="p-4 space-y-5">
         <div className="grid gap-3 md:grid-cols-2">
-          <Link href="/app/create" className="w-full">
+          <Link href="/app/leagues/create" className="w-full">
             <Button
               size="lg"
               className="w-full bg-primary text-primary-foreground border border-primary/30 shadow-[0_18px_50px_-18px_rgba(240,100,100,0.55)] hover:shadow-[0_22px_60px_-18px_rgba(240,100,100,0.65)] hover:-translate-y-0.5 transition-all"

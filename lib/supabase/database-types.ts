@@ -66,12 +66,23 @@ export interface Database {
           name: string
           description: string | null
           creator_address: string
-          creator_id: string
+          creator_id: string | null
+          creator_wallet: string | null
           max_players: number
+          max_participants: number
           status: 'open' | 'drafting' | 'active' | 'ended' | 'cancelled'
           mode: 'social' | 'live' | 'competitive'
           draft_started_at: string | null
           draft_completed_at: string | null
+          start_date: string
+          end_date: string
+          duration_periods: number
+          picks_per_period: number
+          price_per_market_cents: number
+          total_buy_in_cents: number
+          join_code: string
+          type: 'daily' | 'weekly'
+          created_by: string
           end_time: string
           pick_time_limit: number
           auto_pick_enabled: boolean
@@ -85,8 +96,19 @@ export interface Database {
           name: string
           description?: string | null
           creator_address: string
-          creator_id?: string
+          creator_id?: string | null
+          creator_wallet?: string | null
           max_players?: number
+          max_participants: number
+          start_date: string
+          end_date: string
+          duration_periods: number
+          picks_per_period: number
+          price_per_market_cents?: number
+          total_buy_in_cents: number
+          join_code: string
+          type: 'daily' | 'weekly'
+          created_by: string
           status?: 'open' | 'drafting' | 'active' | 'ended' | 'cancelled'
           mode?: 'social' | 'live' | 'competitive'
           draft_started_at?: string | null
@@ -104,8 +126,19 @@ export interface Database {
           name?: string
           description?: string | null
           creator_address?: string
-          creator_id?: string
+          creator_id?: string | null
+          creator_wallet?: string | null
           max_players?: number
+          max_participants?: number
+          start_date?: string
+          end_date?: string
+          duration_periods?: number
+          picks_per_period?: number
+          price_per_market_cents?: number
+          total_buy_in_cents?: number
+          join_code?: string
+          type?: 'daily' | 'weekly'
+          created_by?: string
           status?: 'open' | 'drafting' | 'active' | 'ended' | 'cancelled'
           mode?: 'social' | 'live' | 'competitive'
           draft_started_at?: string | null

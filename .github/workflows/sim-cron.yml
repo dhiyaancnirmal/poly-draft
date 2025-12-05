@@ -1,0 +1,39 @@
+name: sim-cron
+
+on:
+  schedule:
+    # refresh prices every 5 minutes
+    - cron: "*/5 * * * *"
+    # scoring every 10 minutes
+    - cron: "*/10 * * * *"
+    # resolutions hourly
+    - cron: "0 * * * *"
+  workflow_dispatch: {}
+
+env:
+  BASE_URL: https://poly-draft-ypzk.vercel.app
+
+jobs:
+  run-sim-jobs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Refresh prices
+        run: |
+          curl -X POST "$BASE_URL/api/leagues/simulated/jobs/refresh-prices"
+
+      - name: Score leagues
+        run: |
+          curl -X POST "$BASE_URL/api/leagues/simulated/jobs/score"
+
+      - name: Resolutions
+        run: |
+          curl -X POST "$BASE_URL/api/leagues/simulated/jobs/resolutions"
+
+      # Uncomment and set LEAGUE_ID to schedule finalize for a specific league end time,
+      # or trigger manually via workflow_dispatch with an env override.
+      # - name: Finalize (example)
+      #   run: |
+      #     curl -X POST "$BASE_URL/api/leagues/simulated/jobs/finalize?leagueId=$LEAGUE_ID"
+      #   env:
+      #     LEAGUE_ID: ""
+

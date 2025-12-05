@@ -70,14 +70,17 @@ export interface Database {
           creator_wallet: string | null
           max_players: number
           max_participants: number
-          status: 'open' | 'drafting' | 'active' | 'ended' | 'cancelled'
-          mode: 'social' | 'live' | 'competitive'
+          status: 'open' | 'drafting' | 'active' | 'ended' | 'cancelled' | 'pending' | 'live' | 'finalizing' | 'finalized'
+          mode: 'social' | 'live' | 'competitive' | 'sim' | 'paid'
           draft_started_at: string | null
           draft_completed_at: string | null
+          start_time: string | null
           start_date: string
           end_date: string
           duration_periods: number
           picks_per_period: number
+          cadence: 'daily' | 'weekly' | 'custom'
+          markets_per_period: number
           price_per_market_cents: number
           total_buy_in_cents: number
           join_code: string
@@ -104,6 +107,9 @@ export interface Database {
           end_date: string
           duration_periods: number
           picks_per_period: number
+          cadence?: 'daily' | 'weekly' | 'custom'
+          markets_per_period?: number
+          start_time?: string | null
           price_per_market_cents?: number
           total_buy_in_cents: number
           join_code: string
@@ -134,13 +140,16 @@ export interface Database {
           end_date?: string
           duration_periods?: number
           picks_per_period?: number
+          cadence?: 'daily' | 'weekly' | 'custom'
+          markets_per_period?: number
+          start_time?: string | null
           price_per_market_cents?: number
           total_buy_in_cents?: number
           join_code?: string
           type?: 'daily' | 'weekly'
           created_by?: string
-          status?: 'open' | 'drafting' | 'active' | 'ended' | 'cancelled'
-          mode?: 'social' | 'live' | 'competitive'
+          status?: 'open' | 'drafting' | 'active' | 'ended' | 'cancelled' | 'pending' | 'live' | 'finalizing' | 'finalized'
+          mode?: 'social' | 'live' | 'competitive' | 'sim' | 'paid'
           draft_started_at?: string | null
           draft_completed_at?: string | null
           end_time?: string
@@ -418,6 +427,220 @@ export interface Database {
           resolved_at?: string | null
         }
       }
+      swaps: {
+        Row: {
+          id: string
+          league_id: string | null
+          user_id: string | null
+          wallet_address: string
+          from_pick_id: string | null
+          from_market_id: string | null
+          from_outcome_id: string | null
+          to_market_id: string | null
+          to_outcome_id: string | null
+          notional_in: string
+          notional_out: string
+          executed_price: string | null
+          fee: string
+          pnl_delta: string
+          metadata: Json | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          league_id?: string | null
+          user_id?: string | null
+          wallet_address: string
+          from_pick_id?: string | null
+          from_market_id?: string | null
+          from_outcome_id?: string | null
+          to_market_id?: string | null
+          to_outcome_id?: string | null
+          notional_in?: string
+          notional_out?: string
+          executed_price?: string | null
+          fee?: string
+          pnl_delta?: string
+          metadata?: Json | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          league_id?: string | null
+          user_id?: string | null
+          wallet_address?: string
+          from_pick_id?: string | null
+          from_market_id?: string | null
+          from_outcome_id?: string | null
+          to_market_id?: string | null
+          to_outcome_id?: string | null
+          notional_in?: string
+          notional_out?: string
+          executed_price?: string | null
+          fee?: string
+          pnl_delta?: string
+          metadata?: Json | null
+          created_at?: string
+        }
+      }
+      score_snapshots: {
+        Row: {
+          id: string
+          league_id: string | null
+          user_id: string | null
+          wallet_address: string | null
+          period_index: number
+          as_of: string
+          points: number
+          pnl: string
+          portfolio_value: string
+          rank: number | null
+          correct_picks: number
+          total_picks: number
+          markets_held: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          league_id?: string | null
+          user_id?: string | null
+          wallet_address?: string | null
+          period_index?: number
+          as_of?: string
+          points?: number
+          pnl?: string
+          portfolio_value?: string
+          rank?: number | null
+          correct_picks?: number
+          total_picks?: number
+          markets_held?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          league_id?: string | null
+          user_id?: string | null
+          wallet_address?: string | null
+          period_index?: number
+          as_of?: string
+          points?: number
+          pnl?: string
+          portfolio_value?: string
+          rank?: number | null
+          correct_picks?: number
+          total_picks?: number
+          markets_held?: number
+          created_at?: string
+        }
+      }
+      user_proxies: {
+        Row: {
+          id: string
+          user_id: string | null
+          wallet_address: string | null
+          fid: number | null
+          signer_address: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id?: string | null
+          wallet_address?: string | null
+          fid?: number | null
+          signer_address?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string | null
+          wallet_address?: string | null
+          fid?: number | null
+          signer_address?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      bridge_transfers: {
+        Row: {
+          id: string
+          user_id: string | null
+          wallet_address: string
+          direction: 'deposit' | 'withdraw' | 'claim' | null
+          amount: string
+          status: 'pending' | 'completed' | 'failed' | null
+          tx_hash: string | null
+          chain: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id?: string | null
+          wallet_address: string
+          direction?: 'deposit' | 'withdraw' | 'claim' | null
+          amount?: string
+          status?: 'pending' | 'completed' | 'failed' | null
+          tx_hash?: string | null
+          chain?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string | null
+          wallet_address?: string
+          direction?: 'deposit' | 'withdraw' | 'claim' | null
+          amount?: string
+          status?: 'pending' | 'completed' | 'failed' | null
+          tx_hash?: string | null
+          chain?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      pick_swap_logs: {
+        Row: {
+          id: string
+          league_id: string | null
+          user_id: string | null
+          action: 'pick' | 'swap'
+          market_id: string | null
+          outcome_id: string | null
+          outcome_side: 'YES' | 'NO' | null
+          price: string | null
+          tx_hash: string | null
+          metadata: Json | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          league_id?: string | null
+          user_id?: string | null
+          action: 'pick' | 'swap'
+          market_id?: string | null
+          outcome_id?: string | null
+          outcome_side?: 'YES' | 'NO' | null
+          price?: string | null
+          tx_hash?: string | null
+          metadata?: Json | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          league_id?: string | null
+          user_id?: string | null
+          action?: 'pick' | 'swap'
+          market_id?: string | null
+          outcome_id?: string | null
+          outcome_side?: 'YES' | 'NO' | null
+          price?: string | null
+          tx_hash?: string | null
+          metadata?: Json | null
+          created_at?: string
+        }
+      }
       scores: {
         Row: {
           id: string
@@ -614,6 +837,26 @@ export type Score = Database['public']['Tables']['scores']['Row']
 export type ScoreInsert = Database['public']['Tables']['scores']['Insert']
 export type ScoreUpdate = Database['public']['Tables']['scores']['Update']
 
+export type Swap = Database['public']['Tables']['swaps']['Row']
+export type SwapInsert = Database['public']['Tables']['swaps']['Insert']
+export type SwapUpdate = Database['public']['Tables']['swaps']['Update']
+
+export type ScoreSnapshot = Database['public']['Tables']['score_snapshots']['Row']
+export type ScoreSnapshotInsert = Database['public']['Tables']['score_snapshots']['Insert']
+export type ScoreSnapshotUpdate = Database['public']['Tables']['score_snapshots']['Update']
+
+export type UserProxy = Database['public']['Tables']['user_proxies']['Row']
+export type UserProxyInsert = Database['public']['Tables']['user_proxies']['Insert']
+export type UserProxyUpdate = Database['public']['Tables']['user_proxies']['Update']
+
+export type BridgeTransfer = Database['public']['Tables']['bridge_transfers']['Row']
+export type BridgeTransferInsert = Database['public']['Tables']['bridge_transfers']['Insert']
+export type BridgeTransferUpdate = Database['public']['Tables']['bridge_transfers']['Update']
+
+export type PickSwapLog = Database['public']['Tables']['pick_swap_logs']['Row']
+export type PickSwapLogInsert = Database['public']['Tables']['pick_swap_logs']['Insert']
+export type PickSwapLogUpdate = Database['public']['Tables']['pick_swap_logs']['Update']
+
 export type DraftTransaction = Database['public']['Tables']['draft_transactions']['Row']
 export type DraftTransactionInsert = Database['public']['Tables']['draft_transactions']['Insert']
 export type DraftTransactionUpdate = Database['public']['Tables']['draft_transactions']['Update']
@@ -629,8 +872,12 @@ export type UserStatistics = Database['public']['Views']['user_statistics']['Row
 // Union types for enum values
 export type LeagueStatus = League['status']
 export type LeagueMode = League['mode']
+export type LeagueCadence = League['cadence']
 export type AuthMethod = User['auth_method']
 export type OutcomeSide = Outcome['side']
 export type DraftType = DraftState['draft_type']
 export type TransactionType = DraftTransaction['transaction_type']
 export type ResolutionSource = MarketResolution['resolution_source']
+export type SwapAction = PickSwapLog['action']
+export type BridgeDirection = BridgeTransfer['direction']
+export type BridgeStatus = BridgeTransfer['status']

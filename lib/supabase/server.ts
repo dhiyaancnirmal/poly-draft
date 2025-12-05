@@ -1,4 +1,4 @@
-import { createServerClient } from '@supabase/ssr'
+import { createServerClient as createSupabaseServerClient } from '@supabase/ssr'
 import { Database } from './database-types'
 import { cookies } from 'next/headers'
 
@@ -13,8 +13,7 @@ export async function createClient() {
 
   try {
     const cookieStore = await cookies()
-    
-    return createServerClient<Database>(
+    return createSupabaseServerClient<Database>(
       supabaseUrl,
       supabaseSecretKey,
       {
@@ -44,4 +43,9 @@ export async function createClient() {
     console.error('Failed to create Supabase server client:', error)
     throw new Error('Supabase server client initialization failed')
   }
+}
+
+// Backward-compatible alias for existing route imports.
+export async function createServerClient() {
+  return createClient()
 }

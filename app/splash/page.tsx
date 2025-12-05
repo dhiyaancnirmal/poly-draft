@@ -1,15 +1,18 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { sdk } from "@farcaster/miniapp-sdk";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { createClient } from "@/lib/supabase/client";
+import { useTheme } from "@/lib/hooks/useTheme";
 
 export default function Splash() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const { resolvedTheme } = useTheme();
 
   const handleSignIn = async () => {
     setIsLoading(true);
@@ -96,20 +99,56 @@ export default function Splash() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6">
-      <div className="max-w-mobile w-full space-y-8 text-center">
-        {/* Logo and Title */}
-        <div className="space-y-6">
-          <h1 className="text-4xl font-bold text-text tracking-tight">
-            PolyDraft
-          </h1>
-          <p className="text-lg text-muted">
-            Fantasy League Platform for Prediction Markets
-          </p>
+    <div className="relative min-h-screen bg-background p-6 overflow-hidden">
+      {/* Probability rain background constrained to mobile width */}
+      <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden flex justify-center">
+        <div className="relative max-w-mobile w-full h-full">
+          {Array.from({ length: 24 }).map((_, columnIndex) => {
+            const numbers = Array.from({ length: 60 }, (_, idx) => `${(idx * 11 + columnIndex * 17) % 101}%`);
+            const left = (columnIndex / 24) * 100;
+            const duration = 8 + (columnIndex % 6);
+            const delay = columnIndex * 0.35;
+            return (
+              <div
+                key={columnIndex}
+                className="absolute top-[-130%] text-[#3B82F6]/80 text-[11px] leading-4 animate-rain"
+                style={{
+                  left: `${left}%`,
+                  animationDuration: `${duration}s`,
+                  animationDelay: `${delay}s`,
+                }}
+              >
+                {numbers.map((num, i) => (
+                  <span key={`${columnIndex}-${i}`} className="block">
+                    {num}
+                  </span>
+                ))}
+              </div>
+            );
+          })}
         </div>
+      </div>
 
-        {/* Sign In Button */}
-        <div className="space-y-4">
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+        <div className="max-w-mobile w-full pointer-events-auto">
+          <div className="flex items-center justify-center gap-3">
+            <Image
+              src={resolvedTheme === "light" ? "/polydraft-dark.svg" : "/polydraft.svg"}
+              alt="PolyDraft logo"
+              width={41}
+              height={41}
+              className="h-[41px] w-auto"
+              priority
+            />
+            <h1 className="text-4xl font-bold text-text tracking-tight">
+              PolyDraft
+            </h1>
+          </div>
+        </div>
+      </div>
+
+      <div className="absolute inset-x-0 top-[75%] flex justify-center px-6 z-10">
+        <div className="max-w-mobile w-full space-y-4 text-center">
           <Button
             onClick={handleSignIn}
             loading={isLoading}
@@ -121,12 +160,11 @@ export default function Splash() {
               <img
                 src="https://cdn.brandfetch.io/id6XsSOVVS/theme/light/logo.svg?c=1bxid64Mup7aczewSAYMX&t=1757929761243"
                 alt="Base"
-                className="h-5 w-auto"
+                className="h-5 w-auto -mt-1"
               />
             </div>
           </Button>
 
-          {/* Dev/Test Mode Button */}
           <Button
             onClick={() => router.push("/app")}
             size="sm"
@@ -147,31 +185,28 @@ export default function Splash() {
             By signing in, you agree to our Terms of Service and Privacy Policy
           </p>
         </div>
-
-        {/* Features Preview */}
-        <div className="space-y-4 pt-8 border-t border-surface/20">
-          <div className="grid grid-cols-3 gap-4 text-center">
-            <div className="space-y-2">
-              <div className="w-8 h-8 mx-auto bg-primary/20 rounded-lg flex items-center justify-center">
-                <span className="text-primary text-sm">🏆</span>
-              </div>
-              <p className="text-xs text-muted">Fantasy Leagues</p>
-            </div>
-            <div className="space-y-2">
-              <div className="w-8 h-8 mx-auto bg-primary/20 rounded-lg flex items-center justify-center">
-                <span className="text-primary text-sm">📊</span>
-              </div>
-              <p className="text-xs text-muted">Live Markets</p>
-            </div>
-            <div className="space-y-2">
-              <div className="w-8 h-8 mx-auto bg-primary/20 rounded-lg flex items-center justify-center">
-                <span className="text-primary text-sm">🎯</span>
-              </div>
-              <p className="text-xs text-muted">Draft Strategy</p>
-            </div>
-          </div>
-        </div>
       </div>
+
+      <style jsx>{`
+        @keyframes rain {
+          0% {
+            transform: translateY(-20%);
+            opacity: 0;
+          }
+          10% {
+            opacity: 0.18;
+          }
+          100% {
+            transform: translateY(120%);
+            opacity: 0;
+          }
+        }
+        .animate-rain {
+          animation-name: rain;
+          animation-timing-function: linear;
+          animation-iteration-count: infinite;
+        }
+      `}</style>
     </div>
   );
 }
